@@ -1,0 +1,2140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String    @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  deletedAt         DateTime?
+  deletedBy         String?
+  User              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([deletedAt])
+  @@index([userId])
+}
+
+model ActionExecution {
+  id             String                @id
+  actionId       String
+  channelId      String
+  conversationId String?
+  userId         String?
+  userName       String?
+  input          String
+  parsedArgs     Json                  @default("{}")
+  output         String?
+  error          String?
+  status         ActionExecutionStatus @default(PENDING)
+  durationMs     Int?
+  metadata       Json                  @default("{}")
+  executedAt     DateTime              @default(now())
+  QuickAction    QuickAction           @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@index([actionId, executedAt])
+  @@index([actionId])
+  @@index([channelId])
+  @@index([conversationId])
+  @@index([executedAt])
+  @@index([status])
+}
+
+model AdminAgent {
+  id                     String           @id
+  tenantId               String           @unique
+  name                   String           @default("Admin Agent")
+  description            String?
+  avatar                 String?          @default("🛡️")
+  personality            Json             @default("{\"formality\": 70, \"verbosity\": 30}")
+  healthCheckEnabled     Boolean          @default(true)
+  healthCheckIntervalMs  Int              @default(300000)
+  healthCheckTimeoutMs   Int              @default(30000)
+  maxRestartAttempts     Int              @default(3)
+  cooldownAfterRestartMs Int              @default(60000)
+  alertOnLatencyMs       Int              @default(5000)
+  alertOnErrorRate       Float            @default(0.1)
+  alertOnMemoryPercent   Int              @default(80)
+  alertEmail             String?
+  alertWhatsApp          String?
+  alertWebhook           String?
+  alertSlack             String?
+  autoRestartEnabled     Boolean          @default(true)
+  autoRollbackEnabled    Boolean          @default(true)
+  autoScaleEnabled       Boolean          @default(false)
+  lastGoodConfig         Json?
+  lastGoodConfigAt       DateTime?
+  status                 AdminAgentStatus @default(ACTIVE)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime
+  Tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  AdminAlert             AdminAlert[]
+  BotHealthLog           BotHealthLog[]
+
+  @@index([status])
+  @@index([tenantId])
+}
+
+model AdminAlert {
+  id             String             @id
+  adminAgentId   String
+  botId          String?
+  type           AdminAlertType
+  severity       AdminAlertSeverity
+  title          String
+  message        String
+  metadata       Json               @default("{}")
+  status         AdminAlertStatus   @default(OPEN)
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  resolution     String?
+  notifiedVia    String[]           @default([])
+  notifiedAt     DateTime?
+  acknowledged   Boolean            @default(false)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime
+  AdminAgent     AdminAgent         @relation(fields: [adminAgentId], references: [id], onDelete: Cascade)
+  Bot            Bot?               @relation(fields: [botId], references: [id])
+
+  @@index([adminAgentId])
+  @@index([botId])
+  @@index([createdAt])
+  @@index([severity])
+  @@index([status])
+  @@index([type])
+}
+
+model AnalyticsEvent {
+  id             String             @id
+  tenantId       String
+  workspaceId    String?
+  channelId      String?
+  eventType      AnalyticsEventType
+  data           Json               @default("{}")
+  responseTimeMs Int?
+  tokensIn       Int?
+  tokensOut      Int?
+  cost           Decimal?           @db.Decimal(10, 6)
+  model          String?
+  timestamp      DateTime           @default(now())
+
+  @@index([tenantId, channelId])
+  @@index([tenantId, eventType])
+  @@index([tenantId])
+  @@index([tenantId, timestamp])
+  @@index([timestamp])
+}
+
+model ApiKey {
+  id         String    @id
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  tenantId   String
+  scopes     String[]  @default(["read", "write"])
+  rateLimit  Int       @default(1000)
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  deletedAt  DateTime?
+  deletedBy  String?
+  Tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([keyPrefix])
+  @@index([tenantId])
+}
+
+model AuditLog {
+  id         String   @id
+  userId     String?
+  tenantId   String?
+  action     String
+  resource   String
+  resourceId String?
+  oldData    Json?
+  newData    Json?
+  metadata   Json     @default("{}")
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  Tenant     Tenant?  @relation(fields: [tenantId], references: [id])
+  User       User?    @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([resource])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Bot {
+  id                String          @id
+  tenantId          String
+  name              String
+  description       String?
+  avatar            String?
+  personality       Json            @default("{\"humor\": 30, \"empathy\": 70, \"formality\": 50, \"verbosity\": 50, \"creativity\": 50}")
+  systemPrompt      String
+  model             String          @default("gpt-4o-mini")
+  temperature       Float           @default(0.7)
+  maxTokens         Int             @default(2048)
+  knowledgeBaseId   String?
+  welcomeMessage    String?
+  quickReplies      String[]        @default([])
+  handoffEnabled    Boolean         @default(true)
+  handoffTriggers   String[]        @default(["falar com humano", "atendente", "pessoa"])
+  handoffMessage    String?
+  isActive          Boolean         @default(true)
+  isDefault         Boolean         @default(false)
+  messageCount      Int             @default(0)
+  conversationCount Int             @default(0)
+  lastUsedAt        DateTime?
+  tags              String[]        @default([])
+  metadata          Json            @default("{}")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime
+  deletedAt         DateTime?
+  deletedBy         String?
+  AdminAlert        AdminAlert[]
+  KnowledgeBase     KnowledgeBase?  @relation(fields: [knowledgeBaseId], references: [id])
+  Tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  BotAssignment     BotAssignment[]
+  BotHealthLog      BotHealthLog[]
+
+  @@unique([tenantId, name])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+model BotAssignment {
+  id           String    @id
+  botId        String
+  channelId    String
+  channelType  String?
+  channelName  String?
+  isActive     Boolean   @default(true)
+  config       Json      @default("{}")
+  messageCount Int       @default(0)
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+  deletedAt    DateTime?
+  deletedBy    String?
+  Bot          Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, channelId])
+  @@index([botId])
+  @@index([channelId])
+  @@index([deletedAt])
+  @@index([isActive])
+}
+
+model BotHealthLog {
+  id           String          @id
+  adminAgentId String
+  botId        String
+  status       BotHealthStatus
+  latencyMs    Int?
+  memoryMb     Int?
+  cpuPercent   Float?
+  errorCount   Int             @default(0)
+  successCount Int             @default(0)
+  error        String?
+  errorStack   String?
+  action       String?
+  actionResult String?
+  checkedAt    DateTime        @default(now())
+  AdminAgent   AdminAgent      @relation(fields: [adminAgentId], references: [id], onDelete: Cascade)
+  Bot          Bot             @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([adminAgentId, checkedAt])
+  @@index([adminAgentId])
+  @@index([botId])
+  @@index([checkedAt])
+  @@index([status])
+}
+
+model Campaign {
+  id                String              @id
+  tenantId          String
+  workspaceId       String?
+  channelId         String?
+  name              String
+  description       String?
+  type              CampaignType
+  content           String?
+  contentType       MessageContentType  @default(TEXT)
+  attachments       Json                @default("[]")
+  template          Json?
+  scheduledFor      DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  audienceType      AudienceType        @default(ALL)
+  audienceFilter    Json                @default("{}")
+  audienceIds       String[]            @default([])
+  messagesPerMinute Int                 @default(30)
+  delayBetweenMs    Int                 @default(1000)
+  config            Json                @default("{}")
+  status            CampaignStatus      @default(DRAFT)
+  totalRecipients   Int                 @default(0)
+  sentCount         Int                 @default(0)
+  deliveredCount    Int                 @default(0)
+  readCount         Int                 @default(0)
+  respondedCount    Int                 @default(0)
+  failedCount       Int                 @default(0)
+  createdById       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  deletedAt         DateTime?
+  deletedBy         String?
+  Tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  CampaignRecipient CampaignRecipient[]
+
+  @@index([channelId])
+  @@index([deletedAt])
+  @@index([scheduledFor])
+  @@index([status])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([type])
+  @@index([workspaceId])
+}
+
+model CampaignRecipient {
+  id                String          @id
+  campaignId        String
+  contactId         String
+  contactName       String?
+  contactInfo       Json            @default("{}")
+  channelId         String?
+  status            RecipientStatus @default(PENDING)
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  respondedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  response          String?
+  responseType      String?
+  externalMessageId String?
+  metadata          Json            @default("{}")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime
+  Campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+  @@index([campaignId, status])
+  @@index([contactId])
+  @@index([sentAt])
+  @@index([status])
+}
+
+model Channel {
+  id              String         @id
+  name            String
+  type            ChannelType
+  workspaceId     String
+  config          Json           @default("{}")
+  status          ChannelStatus  @default(DISCONNECTED)
+  statusMessage   String?
+  lastConnectedAt DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  Workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  Conversation    Conversation[]
+  UsageLog        UsageLog[]
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([type])
+  @@index([workspaceId])
+}
+
+model Conversation {
+  id                String              @id
+  tenantId          String
+  workspaceId       String
+  channelId         String?
+  contactId         String
+  contactName       String?
+  contactAvatar     String?
+  contactInfo       Json                @default("{}")
+  subject           String?
+  tags              String[]            @default([])
+  status            ConversationStatus  @default(ACTIVE)
+  messageCount      Int                 @default(0)
+  unreadCount       Int                 @default(0)
+  assignedToId      String?
+  handoffAt         DateTime?
+  handoffReason     String?
+  startedAt         DateTime            @default(now())
+  lastMessageAt     DateTime            @default(now())
+  resolvedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  deletedAt         DateTime?
+  deletedBy         String?
+  User              User?               @relation(fields: [assignedToId], references: [id])
+  Channel           Channel?            @relation(fields: [channelId], references: [id])
+  Tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  Workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ConversationEvent ConversationEvent[]
+  ConversationNote  ConversationNote[]
+  Message           Message[]
+
+  @@unique([workspaceId, channelId, contactId])
+  @@index([assignedToId])
+  @@index([channelId])
+  @@index([contactId])
+  @@index([deletedAt])
+  @@index([lastMessageAt])
+  @@index([status])
+  @@index([tags])
+  @@index([tenantId])
+  @@index([workspaceId])
+}
+
+model ConversationEvent {
+  id             String                @id
+  conversationId String
+  type           ConversationEventType
+  actorId        String?
+  actorName      String?
+  data           Json                  @default("{}")
+  createdAt      DateTime              @default(now())
+  User           User?                 @relation(fields: [actorId], references: [id])
+  Conversation   Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model ConversationNote {
+  id             String       @id
+  conversationId String
+  authorId       String
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  deletedAt      DateTime?
+  deletedBy      String?
+  User           User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+model Credit {
+  id        String     @id
+  tenantId  String
+  type      CreditType
+  amount    Int
+  remaining Int
+  expiresAt DateTime?
+  source    String?
+  sourceId  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  deletedAt DateTime?
+  deletedBy String?
+  Tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([expiresAt])
+  @@index([tenantId])
+  @@index([type])
+}
+
+model DailyStats {
+  id                   String   @id
+  tenantId             String
+  workspaceId          String?
+  channelId            String?
+  date                 DateTime @db.Date
+  messagesIn           Int      @default(0)
+  messagesOut          Int      @default(0)
+  conversationsStarted Int      @default(0)
+  conversationsEnded   Int      @default(0)
+  avgResponseTimeMs    Int?
+  p50ResponseTimeMs    Int?
+  p95ResponseTimeMs    Int?
+  p99ResponseTimeMs    Int?
+  handoffRequests      Int      @default(0)
+  handoffCompleted     Int      @default(0)
+  errorCount           Int      @default(0)
+  feedbackPositive     Int      @default(0)
+  feedbackNegative     Int      @default(0)
+  tokensIn             Int      @default(0)
+  tokensOut            Int      @default(0)
+  cost                 Decimal  @default(0) @db.Decimal(10, 6)
+  uniqueUsers          Int      @default(0)
+  peakHour             Int?
+  peakHourMessages     Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+
+  @@unique([tenantId, workspaceId, channelId, date])
+  @@index([date])
+  @@index([tenantId, channelId, date])
+  @@index([tenantId, date])
+  @@index([tenantId])
+}
+
+model Feature {
+  id          String      @id
+  name        String
+  slug        String
+  description String?
+  workspaceId String
+  type        FeatureType
+  config      Json        @default("{}")
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+  deletedAt   DateTime?
+  deletedBy   String?
+  Workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, slug])
+  @@index([deletedAt])
+  @@index([type])
+  @@index([workspaceId])
+}
+
+model GdprRequest {
+  id                String            @id
+  userId            String
+  tenantId          String?
+  type              GdprRequestType
+  status            GdprRequestStatus @default(PENDING)
+  processedAt       DateTime?
+  processedBy       String?
+  exportUrl         String?
+  exportExpiresAt   DateTime?
+  verificationToken String?           @unique
+  verifiedAt        DateTime?
+  metadata          Json              @default("{}")
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  Tenant            Tenant?           @relation(fields: [tenantId], references: [id])
+  User              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([tenantId])
+  @@index([type])
+  @@index([userId])
+}
+
+model HandoffNote {
+  id             String         @id
+  handoffId      String
+  content        String
+  isInternal     Boolean        @default(true)
+  authorId       String
+  authorName     String?
+  createdAt      DateTime       @default(now())
+  HandoffRequest HandoffRequest @relation(fields: [handoffId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([handoffId])
+}
+
+model HandoffRequest {
+  id                  String          @id
+  workspaceId         String
+  channelId           String
+  conversationId      String
+  customerName        String?
+  customerPhone       String?
+  customerEmail       String?
+  customerMeta        Json            @default("{}")
+  reason              HandoffReason
+  reasonText          String?
+  priority            HandoffPriority @default(NORMAL)
+  status              HandoffStatus   @default(PENDING)
+  assignedTo          String?
+  assignedBy          String?
+  assignedAt          DateTime?
+  resolvedAt          DateTime?
+  resolvedBy          String?
+  resolutionNote      String?
+  triggerRule         String?
+  conversationHistory Json            @default("[]")
+  metadata            Json            @default("{}")
+  slaDeadline         DateTime?
+  slaBreached         Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  deletedBy           String?
+  HandoffNote         HandoffNote[]
+  Workspace           Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([assignedTo])
+  @@index([channelId])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([priority])
+  @@index([status])
+  @@index([workspaceId])
+}
+
+model HandoffRule {
+  id               String             @id
+  workspaceId      String
+  channelId        String?
+  name             String
+  description      String?
+  triggerType      HandoffTriggerType
+  triggerConfig    Json               @default("{}")
+  action           HandoffAction      @default(CREATE_REQUEST)
+  actionConfig     Json               @default("{}")
+  priority         HandoffPriority    @default(NORMAL)
+  autoReplyMessage String?
+  isActive         Boolean            @default(true)
+  triggerCount     Int                @default(0)
+  lastTriggeredAt  DateTime?
+  sortOrder        Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  deletedBy        String?
+  Workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([triggerType])
+  @@index([workspaceId])
+}
+
+model HandoffSettings {
+  id                    String    @id
+  workspaceId           String    @unique
+  slaMinutes            Int       @default(30)
+  escalationMinutes     Int       @default(15)
+  notifyEmail           Boolean   @default(true)
+  notifyPush            Boolean   @default(true)
+  notifySound           Boolean   @default(true)
+  notifyEmails          String[]  @default([])
+  enableBusinessHours   Boolean   @default(false)
+  timezone              String    @default("America/Sao_Paulo")
+  businessHoursStart    String    @default("09:00")
+  businessHoursEnd      String    @default("18:00")
+  workDays              Int[]     @default([1, 2, 3, 4, 5])
+  enableAutoAssign      Boolean   @default(false)
+  roundRobinEnabled     Boolean   @default(false)
+  outOfHoursMessage     String?
+  maxConcurrentPerAgent Int       @default(5)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  Workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model HourlyStats {
+  id                String   @id
+  tenantId          String
+  workspaceId       String?
+  channelId         String?
+  hour              DateTime
+  messagesIn        Int      @default(0)
+  messagesOut       Int      @default(0)
+  errorCount        Int      @default(0)
+  avgResponseTimeMs Int?
+  cost              Decimal  @default(0) @db.Decimal(10, 6)
+
+  @@unique([tenantId, workspaceId, channelId, hour])
+  @@index([hour])
+  @@index([tenantId, hour])
+}
+
+model Integration {
+  id             String            @id
+  name           String
+  type           IntegrationType
+  workspaceId    String
+  credentials    Json              @default("{}")
+  config         Json              @default("{}")
+  oauthState     String?
+  status         IntegrationStatus @default(INACTIVE)
+  statusMessage  String?
+  lastSyncAt     DateTime?
+  lastErrorAt    DateTime?
+  syncEnabled    Boolean           @default(true)
+  syncInterval   Int               @default(60)
+  lastSyncData   Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime
+  deletedAt      DateTime?
+  deletedBy      String?
+  Workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  IntegrationLog IntegrationLog[]
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([type])
+  @@index([workspaceId])
+}
+
+model IntegrationLog {
+  id            String               @id
+  integrationId String
+  action        IntegrationAction
+  status        IntegrationLogStatus @default(SUCCESS)
+  data          Json?
+  error         String?
+  metadata      Json                 @default("{}")
+  durationMs    Int?
+  createdAt     DateTime             @default(now())
+  Integration   Integration          @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([integrationId, createdAt])
+  @@index([integrationId])
+  @@index([status])
+}
+
+model Invoice {
+  id                    String        @id
+  tenantId              String
+  externalId            String?       @unique
+  stripeInvoiceId       String?       @unique
+  stripePaymentIntentId String?
+  description           String?
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("BRL")
+  periodStart           DateTime
+  periodEnd             DateTime
+  dueDate               DateTime?
+  status                InvoiceStatus @default(PENDING)
+  paidAt                DateTime?
+  invoiceUrl            String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime
+  deletedAt             DateTime?
+  deletedBy             String?
+  Tenant                Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([stripeInvoiceId])
+  @@index([tenantId])
+}
+
+model KnowledgeBase {
+  id                String              @id
+  name              String
+  description       String?
+  tenantId          String
+  settings          Json                @default("{}")
+  embeddingModel    String              @default("text-embedding-3-small")
+  chunkSize         Int                 @default(1000)
+  chunkOverlap      Int                 @default(200)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  deletedAt         DateTime?
+  deletedBy         String?
+  Bot               Bot[]
+  Tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  KnowledgeDocument KnowledgeDocument[]
+
+  @@index([deletedAt])
+  @@index([isActive])
+  @@index([tenantId])
+}
+
+model KnowledgeChunk {
+  id                String            @id
+  content           String
+  position          Int               @default(0)
+  startIndex        Int?
+  endIndex          Int?
+  embedding         Json?
+  documentId        String
+  metadata          Json              @default("{}")
+  tokenCount        Int?
+  createdAt         DateTime          @default(now())
+  KnowledgeDocument KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([position])
+}
+
+model KnowledgeDocument {
+  id              String           @id
+  title           String
+  content         String
+  contentType     String           @default("text/plain")
+  fileName        String?
+  fileSize        Int?
+  fileUrl         String?
+  knowledgeBaseId String
+  metadata        Json             @default("{}")
+  status          DocumentStatus   @default(PENDING)
+  processedAt     DateTime?
+  errorMessage    String?
+  tokenCount      Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  KnowledgeChunk  KnowledgeChunk[]
+  KnowledgeBase   KnowledgeBase    @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([knowledgeBaseId])
+  @@index([status])
+}
+
+model Membership {
+  id        String       @id
+  userId    String
+  tenantId  String
+  role      MemberRole   @default(OPERATOR)
+  status    MemberStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime
+  deletedAt DateTime?
+  deletedBy String?
+  Tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  User      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Message {
+  id             String             @id
+  conversationId String
+  content        String
+  contentType    MessageContentType @default(TEXT)
+  role           MessageRole
+  senderId       String?
+  senderName     String?
+  externalId     String?
+  attachments    Json               @default("[]")
+  aiMetadata     Json?
+  status         MessageStatus      @default(SENT)
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  failedAt       DateTime?
+  failureReason  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime
+  deletedAt      DateTime?
+  deletedBy      String?
+  Conversation   Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  User           User?              @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([role])
+  @@index([senderId])
+}
+
+model Notification {
+  id        String           @id
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  data      Json?            @default("{}")
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  deletedAt DateTime?
+
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([type])
+  @@index([userId])
+  @@index([userId, read])
+}
+
+model NotificationPreference {
+  id        String           @id
+  userId    String
+  type      NotificationType
+  email     Boolean          @default(true)
+  push      Boolean          @default(true)
+  inApp     Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+model Personality {
+  id           String       @id
+  name         String
+  description  String?
+  workspaceId  String
+  systemPrompt String
+  tone         String?
+  language     String       @default("pt-BR")
+  model        String       @default("gpt-4o-mini")
+  temperature  Float        @default(0.7)
+  maxTokens    Int          @default(2048)
+  isDefault    Boolean      @default(false)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  deletedAt    DateTime?
+  deletedBy    String?
+  Workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  Specialist   Specialist[]
+
+  @@index([deletedAt])
+  @@index([workspaceId])
+}
+
+model QuickAction {
+  id               String            @id
+  tenantId         String
+  name             String
+  description      String?
+  trigger          String
+  type             QuickActionType
+  config           Json              @default("{}")
+  triggerType      ActionTriggerType @default(COMMAND)
+  triggerConfig    Json              @default("{}")
+  responseTemplate String?
+  errorTemplate    String?
+  allowedRoles     String[]          @default([])
+  cooldownSeconds  Int               @default(0)
+  isEnabled        Boolean           @default(true)
+  isBuiltin        Boolean           @default(false)
+  executionCount   Int               @default(0)
+  lastExecutedAt   DateTime?
+  sortOrder        Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  deletedBy        String?
+  ActionExecution  ActionExecution[]
+  Tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, trigger])
+  @@index([deletedAt])
+  @@index([isBuiltin])
+  @@index([isEnabled])
+  @@index([tenantId])
+  @@index([triggerType])
+  @@index([type])
+}
+
+model ScheduledMessage {
+  id             String                 @id
+  tenantId       String
+  workspaceId    String
+  channelId      String
+  contactId      String?
+  conversationId String?
+  content        String
+  contentType    MessageContentType     @default(TEXT)
+  attachments    Json                   @default("[]")
+  scheduledFor   DateTime
+  scheduleType   ScheduleType           @default(ONE_TIME)
+  recurrence     Json?
+  triggerConfig  Json?
+  status         ScheduledMessageStatus @default(PENDING)
+  sentAt         DateTime?
+  error          String?
+  retryCount     Int                    @default(0)
+  maxRetries     Int                    @default(3)
+  lastRetryAt    DateTime?
+  nextRetryAt    DateTime?
+  name           String?
+  tags           String[]               @default([])
+  metadata       Json                   @default("{}")
+  createdById    String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime
+  deletedAt      DateTime?
+  deletedBy      String?
+  Tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([deletedAt])
+  @@index([scheduleType])
+  @@index([scheduledFor])
+  @@index([status])
+  @@index([tenantId])
+  @@index([tenantId, status, scheduledFor])
+  @@index([workspaceId])
+}
+
+model Session {
+  id           String    @id
+  sessionToken String    @unique
+  userId       String
+  expires      DateTime
+  deletedAt    DateTime?
+  deletedBy    String?
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([userId])
+}
+
+model Specialist {
+  id              String       @id
+  name            String
+  description     String?
+  workspaceId     String
+  personalityId   String?
+  systemPrompt    String?
+  triggerKeywords String[]
+  knowledgeBase   Json         @default("[]")
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  Personality     Personality? @relation(fields: [personalityId], references: [id])
+  Workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([personalityId])
+  @@index([workspaceId])
+}
+
+model Subscription {
+  id                   String             @id
+  tenantId             String             @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  externalId           String?            @unique
+  externalProvider     String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  trialEnd             DateTime?
+  status               SubscriptionStatus @default(ACTIVE)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  maxWorkspaces        Int                @default(1)
+  maxChannels          Int                @default(1)
+  maxMessages          Int                @default(500)
+  maxBots              Int                @default(1)
+  maxUsers             Int                @default(1)
+  maxStorage           Int                @default(100)
+  hasAnalytics         Boolean            @default(false)
+  hasApiAccess         Boolean            @default(false)
+  hasPrioritySupport   Boolean            @default(false)
+  hasCustomBranding    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime
+  deletedAt            DateTime?
+  deletedBy            String?
+  Tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([plan])
+  @@index([status])
+  @@index([stripeCustomerId])
+}
+
+model TeamActivityLog {
+  id          String     @id
+  tenantId    String
+  actorId     String
+  action      TeamAction
+  targetType  String
+  targetId    String?
+  targetEmail String?
+  details     Json       @default("{}")
+  createdAt   DateTime   @default(now())
+  User        User       @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  Tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([tenantId])
+}
+
+model TeamInvite {
+  id           String     @id
+  tenantId     String
+  email        String
+  role         MemberRole @default(OPERATOR)
+  permissions  String[]   @default([])
+  token        String     @unique
+  invitedById  String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+  User         User       @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  Tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([tenantId])
+  @@index([token])
+}
+
+model TeamMember {
+  id                                String     @id
+  tenantId                          String
+  userId                            String
+  role                              MemberRole @default(OPERATOR)
+  permissions                       String[]   @default([])
+  invitedById                       String?
+  joinedAt                          DateTime   @default(now())
+  createdAt                         DateTime   @default(now())
+  updatedAt                         DateTime
+  deletedAt                         DateTime?
+  deletedBy                         String?
+  User_TeamMember_invitedByIdToUser User?      @relation("TeamMember_invitedByIdToUser", fields: [invitedById], references: [id])
+  Tenant                            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  User_TeamMember_userIdToUser      User       @relation("TeamMember_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([deletedAt])
+  @@index([role])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Template {
+  id               String           @id
+  name             String
+  slug             String           @unique
+  description      String
+  categoryId       String
+  authorId         String?
+  icon             String
+  color            String           @default("blue")
+  thumbnail        String?
+  config           Json
+  tags             String[]
+  usageCount       Int              @default(0)
+  rating           Float?           @default(0)
+  ratingCount      Int              @default(0)
+  isPublic         Boolean          @default(true)
+  isOfficial       Boolean          @default(false)
+  isFeatured       Boolean          @default(false)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  deletedBy        String?
+  TemplateCategory TemplateCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@index([isFeatured])
+  @@index([isPublic, isActive])
+  @@index([slug])
+  @@index([usageCount])
+}
+
+model TemplateCategory {
+  id          String     @id
+  name        String
+  slug        String     @unique
+  icon        String
+  description String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime
+  Template    Template[]
+
+  @@index([slug])
+  @@index([sortOrder])
+}
+
+model Tenant {
+  id                String             @id
+  name              String
+  slug              String             @unique
+  domain            String?            @unique
+  logoUrl           String?
+  plan              TenantPlan         @default(FREE)
+  settings          Json               @default("{}")
+  dataRetentionDays Int?               @default(365)
+  status            TenantStatus       @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime
+  deletedAt         DateTime?
+  deletedBy         String?
+  
+  // LLM Gateway - Budget & Limits
+  monthlyBudget     Float?             // Budget mensal em USD
+  dailyLimit        Float?             // Limite diário em USD
+  alertThresholds   Json               @default("[0.2, 0.1, 0.05, 0.01]") // 20%, 10%, 5%, 1%
+  llmSuspended      Boolean            @default(false) // Suspenso por exceder limite
+  allowedProviders  String[]           @default([])     // Providers permitidos (vazio = todos)
+  
+  // Relations
+  AdminAgent        AdminAgent?
+  ApiKey            ApiKey[]
+  AuditLog          AuditLog[]
+  Bot               Bot[]
+  Campaign          Campaign[]
+  Conversation      Conversation[]
+  Credit            Credit[]
+  GdprRequest       GdprRequest[]
+  Invoice           Invoice[]
+  KnowledgeBase     KnowledgeBase[]
+  Membership        Membership[]
+  QuickAction       QuickAction[]
+  ScheduledMessage  ScheduledMessage[]
+  Subscription      Subscription?
+  TeamActivityLog   TeamActivityLog[]
+  TeamInvite        TeamInvite[]
+  TeamMember        TeamMember[]
+  UsageRecord       UsageRecord[]
+  User              User[]
+  Workspace         Workspace[]
+  
+  // LLM Gateway Relations
+  TenantAgent       TenantAgent[]
+  LLMUsage          LLMUsage[]
+  LLMUsageAlert     LLMUsageAlert[]
+
+  @@index([deletedAt])
+  @@index([slug])
+  @@index([status])
+}
+
+model TopicStats {
+  id                String   @id
+  tenantId          String
+  workspaceId       String?
+  channelId         String?
+  periodStart       DateTime @db.Date
+  periodEnd         DateTime @db.Date
+  topic             String
+  keywords          String[]
+  count             Int      @default(0)
+  examples          Json     @default("[]")
+  avgResponseTimeMs Int?
+  resolutionRate    Float?
+
+  @@index([tenantId, count])
+  @@index([tenantId, periodStart])
+}
+
+model UsageLog {
+  id           String    @id
+  workspaceId  String
+  channelId    String?
+  type         UsageType
+  inputTokens  Int       @default(0)
+  outputTokens Int       @default(0)
+  totalTokens  Int       @default(0)
+  cost         Decimal   @default(0) @db.Decimal(10, 6)
+  model        String?
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+  deletedBy    String?
+  Channel      Channel?  @relation(fields: [channelId], references: [id])
+  Workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([type])
+  @@index([workspaceId])
+}
+
+model UsageRecord {
+  id        String          @id
+  tenantId  String
+  type      UsageRecordType
+  amount    Float           @default(0)
+  unit      String
+  date      DateTime        @db.Date
+  metadata  Json            @default("{}")
+  createdAt DateTime        @default(now())
+  Tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([tenantId, date])
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([type])
+}
+
+model User {
+  id                                      String              @id
+  name                                    String?
+  email                                   String              @unique
+  emailVerified                           DateTime?
+  image                                   String?
+  tenantId                                String?
+  role                                    UserRole            @default(MEMBER)
+  isActive                                Boolean             @default(true)
+  lastLoginAt                             DateTime?
+  createdAt                               DateTime            @default(now())
+  updatedAt                               DateTime
+  deletedAt                               DateTime?
+  deletedBy                               String?
+  isAnonymized                            Boolean             @default(false)
+  anonymizedAt                            DateTime?
+  password                                String?
+  Account                                 Account[]
+  AuditLog                                AuditLog[]
+  Conversation                            Conversation[]
+  ConversationEvent                       ConversationEvent[]
+  ConversationNote                        ConversationNote[]
+  GdprRequest                             GdprRequest[]
+  Membership                              Membership[]
+  Message                                 Message[]
+  Session                                 Session[]
+  TeamActivityLog                         TeamActivityLog[]
+  TeamInvite                              TeamInvite[]
+  TeamMember_TeamMember_invitedByIdToUser TeamMember[]        @relation("TeamMember_invitedByIdToUser")
+  TeamMember_TeamMember_userIdToUser      TeamMember[]        @relation("TeamMember_userIdToUser")
+  Tenant                                  Tenant?             @relation(fields: [tenantId], references: [id])
+
+  @@index([deletedAt])
+  @@index([email])
+  @@index([isAnonymized])
+  @@index([tenantId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Webhook {
+  id              String         @id
+  name            String
+  url             String
+  workspaceId     String
+  events          WebhookEvent[]
+  headers         Json           @default("{}")
+  secret          String?
+  isActive        Boolean        @default(true)
+  lastTriggeredAt DateTime?
+  failureCount    Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  Workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([workspaceId])
+}
+
+model Workspace {
+  id              String           @id
+  name            String
+  slug            String
+  description     String?
+  tenantId        String
+  settings        Json             @default("{}")
+  timezone        String           @default("America/Sao_Paulo")
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  Channel         Channel[]
+  Conversation    Conversation[]
+  Feature         Feature[]
+  HandoffRequest  HandoffRequest[]
+  HandoffRule     HandoffRule[]
+  HandoffSettings HandoffSettings?
+  Integration     Integration[]
+  Personality     Personality[]
+  Specialist      Specialist[]
+  UsageLog        UsageLog[]
+  Webhook         Webhook[]
+  Tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([deletedAt])
+  @@index([slug])
+  @@index([tenantId])
+}
+
+enum ActionExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ActionTriggerType {
+  COMMAND
+  KEYWORD
+  REGEX
+}
+
+enum AdminAgentStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum AdminAlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AdminAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  IGNORED
+}
+
+enum AdminAlertType {
+  BOT_DOWN
+  BOT_SLOW
+  BOT_ERRORS
+  BOT_RESTARTED
+  CONFIG_INVALID
+  CONFIG_ROLLED_BACK
+  MEMORY_HIGH
+  QUOTA_WARNING
+  QUOTA_EXCEEDED
+  SECURITY_ALERT
+  CUSTOM
+}
+
+enum AnalyticsEventType {
+  MESSAGE_IN
+  MESSAGE_OUT
+  HANDOFF_REQUESTED
+  HANDOFF_COMPLETED
+  CONVERSATION_START
+  CONVERSATION_END
+  ERROR
+  FEEDBACK_POSITIVE
+  FEEDBACK_NEGATIVE
+  API_CALL
+  SPECIALIST_INVOKED
+}
+
+enum AudienceType {
+  ALL
+  SEGMENT
+  SPECIFIC
+  IMPORT
+}
+
+enum BotHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  RESTARTING
+  DEAD
+  UNKNOWN
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  QUEUED
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum CampaignType {
+  BROADCAST
+  NEWSLETTER
+  FOLLOW_UP
+  RE_ENGAGEMENT
+  SATISFACTION
+  PROMOTIONAL
+  REMINDER
+  CUSTOM
+}
+
+enum ChannelStatus {
+  CONNECTED
+  DISCONNECTED
+  CONNECTING
+  ERROR
+  EXPIRED
+}
+
+enum ChannelType {
+  WHATSAPP
+  TELEGRAM
+  DISCORD
+  SLACK
+  WEBCHAT
+  EMAIL
+  SMS
+  INSTAGRAM
+  MESSENGER
+}
+
+enum ConversationEventType {
+  STARTED
+  HANDOFF_REQUESTED
+  HANDOFF_ACCEPTED
+  HANDOFF_REJECTED
+  ASSIGNED
+  UNASSIGNED
+  STATUS_CHANGED
+  TAG_ADDED
+  TAG_REMOVED
+  NOTE_ADDED
+  RESOLVED
+  REOPENED
+  ARCHIVED
+  EXPORTED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  WAITING
+  HANDOFF
+  RESOLVED
+  ARCHIVED
+}
+
+enum CreditType {
+  MESSAGE
+  TOKEN
+  API_CALL
+  STORAGE
+  BONUS
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FeatureType {
+  WELCOME_MESSAGE
+  AUTO_REPLY
+  FAQ
+  APPOINTMENT_BOOKING
+  LEAD_CAPTURE
+  SUPPORT_TICKET
+  ORDER_STATUS
+  PRODUCT_CATALOG
+  PAYMENT_LINK
+  HUMAN_HANDOFF
+  CUSTOM
+}
+
+enum GdprRequestStatus {
+  PENDING
+  VERIFIED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum GdprRequestType {
+  DATA_EXPORT
+  DATA_DELETION
+  DATA_RECTIFICATION
+  DATA_PORTABILITY
+  CONSENT_WITHDRAWAL
+}
+
+enum HandoffAction {
+  CREATE_REQUEST
+  AUTO_ASSIGN
+  NOTIFY_ONLY
+}
+
+enum HandoffPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum HandoffReason {
+  KEYWORD_MATCH
+  NEGATIVE_SENTIMENT
+  BOT_LOOP
+  CUSTOMER_REQUEST
+  MANUAL_TRANSFER
+  SCHEDULE_TRIGGER
+  HIGH_VALUE
+  VIP_CUSTOMER
+  ESCALATION
+  OTHER
+}
+
+enum HandoffStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  ON_HOLD
+  RESOLVED
+  ESCALATED
+  CANCELLED
+  EXPIRED
+}
+
+enum HandoffTriggerType {
+  KEYWORD
+  SENTIMENT
+  BOT_LOOP
+  SCHEDULE
+  INTENT
+  CUSTOM
+}
+
+enum IntegrationAction {
+  CONNECT
+  DISCONNECT
+  SYNC
+  OAUTH_START
+  OAUTH_CALLBACK
+  WEBHOOK_SEND
+  WEBHOOK_RECEIVE
+  CREATE_CONTACT
+  UPDATE_CONTACT
+  CREATE_EVENT
+  UPDATE_EVENT
+  CREATE_TICKET
+  UPDATE_TICKET
+  CREATE_DOCUMENT
+  UPLOAD_FILE
+  TRIGGER_WORKFLOW
+  REFRESH_TOKEN
+  TEST_CONNECTION
+  ERROR
+}
+
+enum IntegrationLogStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  PARTIAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  EXPIRED
+  PENDING
+}
+
+enum IntegrationType {
+  CRM_HUBSPOT
+  CRM_SALESFORCE
+  CRM_PIPEDRIVE
+  CRM_RDSTATION
+  CALENDAR_GOOGLE
+  CALENDAR_OUTLOOK
+  CALENDAR_CALCOM
+  PAYMENT_STRIPE
+  PAYMENT_MERCADOPAGO
+  ECOMMERCE_SHOPIFY
+  ECOMMERCE_WOOCOMMERCE
+  EMAIL_SENDGRID
+  EMAIL_MAILCHIMP
+  HELPDESK_ZENDESK
+  HELPDESK_FRESHDESK
+  HELPDESK_INTERCOM
+  STORAGE_S3
+  STORAGE_GOOGLE_DRIVE
+  STORAGE_NOTION
+  STORAGE_AIRTABLE
+  ANALYTICS_GA4
+  AUTOMATION_ZAPIER
+  AUTOMATION_MAKE
+  CUSTOM_API
+  WEBHOOK
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum MessageContentType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  STICKER
+  INTERACTIVE
+  TEMPLATE
+  SYSTEM
+}
+
+enum MessageRole {
+  USER
+  BOT
+  OPERATOR
+  SYSTEM
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum NotificationType {
+  HANDOFF_REQUESTED
+  HANDOFF_TIMEOUT
+  BOT_ERROR
+  USAGE_ALERT
+  NEW_CONVERSATION
+  MENTION
+  DAILY_SUMMARY
+  SYSTEM
+}
+
+enum QuickActionType {
+  SUMMARIZE
+  SEARCH
+  REMIND
+  TRANSLATE
+  TRANSCRIBE
+  MUTE
+  STATUS
+  HELP
+  CUSTOM
+}
+
+enum RecipientStatus {
+  PENDING
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  RESPONDED
+  FAILED
+  SKIPPED
+  OPT_OUT
+}
+
+enum ScheduleType {
+  ONE_TIME
+  RECURRING
+  TRIGGER_BASED
+}
+
+enum ScheduledMessageStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+  PAUSED
+  COMPLETED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+  TRIAL
+}
+
+enum TeamAction {
+  MEMBER_INVITED
+  MEMBER_JOINED
+  MEMBER_ROLE_CHANGED
+  MEMBER_PERMISSIONS_CHANGED
+  MEMBER_REMOVED
+  INVITE_CANCELLED
+  INVITE_RESENT
+  INVITE_EXPIRED
+}
+
+enum TenantPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum UsageRecordType {
+  MESSAGES_SENT
+  MESSAGES_RECEIVED
+  TOKENS_INPUT
+  TOKENS_OUTPUT
+  AUDIO_TRANSCRIPTION
+  STORAGE_KB
+  TEAM_MEMBERS
+  API_CALLS
+  BOTS_ACTIVE
+  CHANNELS_ACTIVE
+}
+
+enum UsageType {
+  MESSAGE
+  COMPLETION
+  EMBEDDING
+  IMAGE
+  AUDIO
+  FUNCTION_CALL
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum WebhookEvent {
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  CONVERSATION_STARTED
+  CONVERSATION_ENDED
+  LEAD_CAPTURED
+  APPOINTMENT_BOOKED
+  PAYMENT_RECEIVED
+  ERROR
+}
+
+// ============================================
+// LLM GATEWAY - Modelos para roteamento centralizado
+// ============================================
+
+enum LLMProviderType {
+  CLAUDE_MAX      // Conta Max (subscription)
+  CLAUDE_API      // API paga (pay-per-use)
+  OPENAI_API      // OpenAI API
+  GOOGLE_API      // Google AI (Gemini)
+  LOCAL           // Modelo local
+}
+
+enum ProviderStatus {
+  ACTIVE          // Funcionando normalmente
+  DEGRADED        // Funcionando com problemas
+  RATE_LIMITED    // Atingiu rate limit
+  CIRCUIT_OPEN    // Circuit breaker aberto (não usar)
+  MAINTENANCE     // Em manutenção programada
+  DISABLED        // Desabilitado manualmente
+}
+
+enum LLMRequestType {
+  CHAT            // Conversa normal
+  COMPLETION      // Completions
+  EMBEDDING       // Embeddings
+  FUNCTION_CALL   // Tool/function calls
+  VISION          // Análise de imagem
+  AUDIO           // Transcrição/TTS
+}
+
+enum LLMAlertType {
+  BUDGET_WARNING    // Approaching budget limit
+  BUDGET_CRITICAL   // Critical budget level
+  BUDGET_EXCEEDED   // Budget exceeded
+  DAILY_WARNING     // Approaching daily limit
+  DAILY_EXCEEDED    // Daily limit exceeded
+  PROVIDER_ERROR    // Provider having issues
+  RATE_LIMIT        // Rate limit hit
+}
+
+// Pool de LLM Providers
+model LLMProvider {
+  id                  String         @id @default(cuid())
+  name                String         @unique // ex: "max-1", "max-2", "api-paid"
+  type                LLMProviderType
+  endpoint            String?        // URL do endpoint (se aplicável)
+  model               String         // ex: "claude-sonnet-4-20250514"
+  
+  // Capacidade
+  rateLimit           Int            @default(60)  // requests por minuto
+  concurrency         Int            @default(5)   // requests simultâneos
+  
+  // Custo
+  costPerInputToken   Float          @default(0.000003)  // $3/1M tokens
+  costPerOutputToken  Float          @default(0.000015)  // $15/1M tokens
+  
+  // Prioridade (menor = mais prioritário)
+  priority            Int            @default(1)
+  
+  // Status operacional
+  status              ProviderStatus @default(ACTIVE)
+  lastCheckedAt       DateTime?
+  lastErrorAt         DateTime?
+  errorCount          Int            @default(0)
+  
+  // Metadata
+  metadata            Json?          @default("{}")
+  
+  // Timestamps
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  
+  // Relations
+  LLMUsage            LLMUsage[]
+  ProviderStatusHistory ProviderStatusHistory[]
+  
+  @@index([status, priority])
+}
+
+// Histórico de mudanças de status do provider (Circuit Breaker)
+model ProviderStatusHistory {
+  id            String         @id @default(cuid())
+  providerId    String
+  provider      LLMProvider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  fromStatus    ProviderStatus
+  toStatus      ProviderStatus
+  reason        String?        // Motivo da mudança
+  
+  createdAt     DateTime       @default(now())
+  
+  @@index([providerId])
+  @@index([createdAt])
+}
+
+// Agentes pertencentes a um tenant (Alcateia)
+model TenantAgent {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name            String    // ex: "Lobo", "Águia"
+  role            String?   // ex: "coordinator", "researcher"
+  description     String?
+  avatar          String?   // emoji ou URL
+  
+  // Preferências de modelo
+  preferredModel  String?   // ex: "claude-sonnet-4-20250514"
+  
+  // Limites específicos do agente
+  dailyLimit      Float?    // Limite diário em USD (opcional)
+  
+  // Status
+  active          Boolean   @default(true)
+  
+  // Metadata
+  metadata        Json?     @default("{}")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  LLMUsage        LLMUsage[]
+  
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// Registro de cada request ao LLM (tracking de consumo)
+model LLMUsage {
+  id            String        @id @default(cuid())
+  
+  // Quem usou
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  agentId       String?
+  agent         TenantAgent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  
+  // Provider usado
+  providerId    String
+  provider      LLMProvider   @relation(fields: [providerId], references: [id])
+  
+  // Modelo e tipo
+  model         String        // ex: "claude-sonnet-4-20250514"
+  requestType   LLMRequestType @default(CHAT)
+  
+  // Tokens
+  inputTokens   Int
+  outputTokens  Int
+  totalTokens   Int
+  
+  // Custo calculado
+  cost          Float         // Em USD
+  
+  // Contexto
+  channel       String?       // ex: "whatsapp", "discord"
+  groupId       String?       // ID do grupo/canal
+  sessionId     String?       // ID da sessão
+  
+  // Performance
+  latencyMs     Int?          // Tempo de resposta
+  
+  // Status
+  success       Boolean       @default(true)
+  errorMessage  String?       @db.Text
+  
+  // Metadata
+  metadata      Json?         @default("{}")
+  
+  // Timestamp
+  createdAt     DateTime      @default(now())
+  
+  @@index([tenantId])
+  @@index([agentId])
+  @@index([providerId])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([model])
+}
+
+// Alertas de consumo do LLM Gateway
+model LLMUsageAlert {
+  id              String       @id @default(cuid())
+  
+  tenantId        String
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  type            LLMAlertType
+  threshold       Float        // Threshold que disparou (ex: 0.20 = 20%)
+  message         String
+  
+  // Valores no momento do alerta
+  currentUsage    Float        // Uso atual em USD
+  limitValue      Float        // Limite configurado em USD
+  percentUsed     Float        // Porcentagem usada
+  
+  // Status
+  acknowledged    Boolean      @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  
+  // Notificações enviadas
+  emailSent       Boolean      @default(false)
+  whatsappSent    Boolean      @default(false)
+  slackSent       Boolean      @default(false)
+  
+  // Timestamp
+  createdAt       DateTime     @default(now())
+  expiresAt       DateTime?
+  
+  @@index([tenantId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([acknowledged])
+}
+
+// Controle de rate limiting
+model LLMRateLimitEntry {
+  id            String    @id @default(cuid())
+  
+  // Identificador (tenant, agent, ou IP)
+  key           String    @unique // ex: "tenant:abc123", "agent:xyz789"
+  
+  // Contadores
+  requestCount  Int       @default(0)
+  tokenCount    Int       @default(0)
+  
+  // Janela de tempo
+  windowStart   DateTime
+  windowEnd     DateTime
+  
+  // Status
+  blocked       Boolean   @default(false)
+  blockedUntil  DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([windowEnd])
+}
