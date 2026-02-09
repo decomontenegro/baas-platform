@@ -4,10 +4,19 @@ import { prisma } from '@/lib/prisma'
 import {
   getUsageSummary,
   type UsagePeriod,
+  type UsageSummary,
 } from '@/lib/llm-gateway/usage'
+import { cacheGet, cacheSet } from '@/lib/admin-agent/cache'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
+
+// Cache TTLs by period (in seconds)
+const CACHE_TTL: Record<UsagePeriod, number> = {
+  day: 30,    // 30 seconds - day data changes frequently
+  week: 60,   // 1 minute
+  month: 120, // 2 minutes - aggregated data, less volatile
+}
 
 /**
  * GET /api/llm/usage
@@ -16,6 +25,7 @@ export const dynamic = 'force-dynamic'
  *
  * Query params:
  *   - period: 'day' | 'week' | 'month' (default: 'month')
+ *   - noCache: 'true' to bypass cache (optional)
  *
  * Response:
  *   - UsageSummary with totals, top agents, top models, and budget info
@@ -42,6 +52,7 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const searchParams = request.nextUrl.searchParams
     const period = (searchParams.get('period') || 'month') as UsagePeriod
+    const noCache = searchParams.get('noCache') === 'true'
 
     // Validate period
     if (!['day', 'week', 'month'].includes(period)) {
@@ -51,12 +62,31 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get usage summary
+    // Cache key: tenant-specific and period-specific
+    const cacheKey = `llm:usage:${tenantId}:${period}`
+
+    // Try cache first (unless noCache requested)
+    if (!noCache) {
+      const cached = await cacheGet<UsageSummary>(cacheKey)
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached,
+          _cached: true,
+        })
+      }
+    }
+
+    // Get usage summary from database
     const summary = await getUsageSummary(tenantId, period)
+
+    // Cache the result
+    await cacheSet(cacheKey, summary, CACHE_TTL[period])
 
     return NextResponse.json({
       success: true,
       data: summary,
+      _cached: false,
     })
   } catch (error) {
     console.error('[API] Error fetching LLM usage summary:', error)

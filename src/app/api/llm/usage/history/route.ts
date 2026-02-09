@@ -6,9 +6,18 @@ import {
   getCurrentMonthUsage,
   getRealTimeStats,
 } from '@/lib/llm-gateway/usage'
+import { cacheGet, cacheSet } from '@/lib/admin-agent/cache'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
+
+// Cache TTLs by type (in seconds)
+const CACHE_TTL: Record<string, number> = {
+  hourly: 60,   // 1 minute
+  daily: 120,   // 2 minutes
+  month: 120,   // 2 minutes
+  realtime: 0,  // No cache - needs to be real-time
+}
 
 /**
  * GET /api/llm/usage/history
@@ -18,6 +27,7 @@ export const dynamic = 'force-dynamic'
  * Query params:
  *   - days: number (default: 30, max: 90)
  *   - type: 'daily' | 'hourly' | 'realtime' | 'month' (default: 'daily')
+ *   - noCache: 'true' to bypass cache (optional)
  *
  * Response varies by type:
  *   - daily: Array of DailyUsage for the last N days
@@ -48,8 +58,29 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const days = Math.min(90, Math.max(1, parseInt(searchParams.get('days') || '30', 10)))
     const type = searchParams.get('type') || 'daily'
+    const noCache = searchParams.get('noCache') === 'true'
 
-    let data: any
+    // Cache key based on type and params
+    const cacheKey = `llm:usage:history:${tenantId}:${type}:${type === 'daily' ? days : ''}`
+    const ttl = CACHE_TTL[type] || 0
+
+    // Try cache first (except for realtime)
+    if (ttl > 0 && !noCache) {
+      const cached = await cacheGet<unknown>(cacheKey)
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached,
+          meta: {
+            type,
+            ...(type === 'daily' && { days }),
+          },
+          _cached: true,
+        })
+      }
+    }
+
+    let data: unknown
 
     switch (type) {
       case 'hourly':
@@ -70,6 +101,11 @@ export async function GET(request: NextRequest) {
         break
     }
 
+    // Cache the result (except for realtime)
+    if (ttl > 0) {
+      await cacheSet(cacheKey, data, ttl)
+    }
+
     return NextResponse.json({
       success: true,
       data,
@@ -77,6 +113,7 @@ export async function GET(request: NextRequest) {
         type,
         ...(type === 'daily' && { days }),
       },
+      _cached: false,
     })
   } catch (error) {
     console.error('[API] Error fetching LLM usage history:', error)

@@ -6,11 +6,19 @@ import {
   getUsageByProvider,
   type UsagePeriod,
 } from '@/lib/llm-gateway/usage'
+import { cacheGet, cacheSet } from '@/lib/admin-agent/cache'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 type GroupBy = 'agent' | 'model' | 'provider'
+
+// Cache TTLs by period (in seconds)
+const CACHE_TTL: Record<UsagePeriod, number> = {
+  day: 30,    // 30 seconds - day data changes frequently
+  week: 60,   // 1 minute
+  month: 120, // 2 minutes - aggregated data, less volatile
+}
 
 /**
  * GET /api/llm/usage/breakdown
@@ -20,6 +28,7 @@ type GroupBy = 'agent' | 'model' | 'provider'
  * Query params:
  *   - groupBy: 'agent' | 'model' | 'provider' (required)
  *   - period: 'day' | 'week' | 'month' (default: 'month')
+ *   - noCache: 'true' to bypass cache (optional)
  *
  * Response:
  *   - Array of usage data grouped by the specified dimension
@@ -47,6 +56,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const groupBy = searchParams.get('groupBy') as GroupBy | null
     const period = (searchParams.get('period') || 'month') as UsagePeriod
+    const noCache = searchParams.get('noCache') === 'true'
 
     // Validate groupBy
     if (!groupBy || !['agent', 'model', 'provider'].includes(groupBy)) {
@@ -67,8 +77,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Cache key: tenant + groupBy + period
+    const cacheKey = `llm:usage:breakdown:${tenantId}:${groupBy}:${period}`
+
+    // Try cache first
+    if (!noCache) {
+      const cached = await cacheGet<unknown[]>(cacheKey)
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached,
+          meta: {
+            groupBy,
+            period,
+            count: cached.length,
+          },
+          _cached: true,
+        })
+      }
+    }
+
     // Get breakdown data based on groupBy
-    let data: any
+    let data: unknown[]
 
     switch (groupBy) {
       case 'agent':
@@ -84,6 +114,9 @@ export async function GET(request: NextRequest) {
         break
     }
 
+    // Cache the result
+    await cacheSet(cacheKey, data, CACHE_TTL[period])
+
     return NextResponse.json({
       success: true,
       data,
@@ -92,6 +125,7 @@ export async function GET(request: NextRequest) {
         period,
         count: data.length,
       },
+      _cached: false,
     })
   } catch (error) {
     console.error('[API] Error fetching LLM usage breakdown:', error)

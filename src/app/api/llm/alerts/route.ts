@@ -17,7 +17,11 @@ import {
   checkAndCreateAlerts,
   getUsageContext,
 } from '@/lib/llm-gateway/alerter';
+import { cacheGet, cacheSet, invalidateCache } from '@/lib/admin-agent/cache';
 import type { LLMAlertType } from '@prisma/client';
+
+// Cache TTL for alerts (30 seconds - alerts need to be fresh)
+const ALERTS_CACHE_TTL = 30;
 
 // ============================================
 // GET /api/llm/alerts
@@ -78,9 +82,36 @@ export async function GET(request: NextRequest) {
     let newAlerts: Awaited<ReturnType<typeof checkAndCreateAlerts>> = [];
     if (runCheck) {
       newAlerts = await checkAndCreateAlerts(tenantId);
+      // Invalidate cache after creating new alerts
+      await invalidateCache(`llm:alerts:${tenantId}:*`);
     }
 
-    // 5. Fetch alerts
+    // 5. Build cache key based on query params
+    const cacheKey = `llm:alerts:${tenantId}:${activeOnly}:${acknowledgedParam}:${typeParam}:${limit}:${offset}`;
+    const noCache = searchParams.get('noCache') === 'true';
+
+    // Try cache for non-check requests
+    if (!runCheck && !noCache) {
+      const cached = await cacheGet<{ alerts: unknown[]; total: number; usageContext: unknown }>(cacheKey);
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            alerts: cached.alerts,
+            pagination: {
+              total: cached.total,
+              limit,
+              offset,
+              hasMore: offset + cached.alerts.length < cached.total,
+            },
+            usage: cached.usageContext,
+          },
+          _cached: true,
+        });
+      }
+    }
+
+    // 6. Fetch alerts from database
     let alerts;
     let total;
 
@@ -102,10 +133,15 @@ export async function GET(request: NextRequest) {
       total = result.total;
     }
 
-    // 6. Get usage context for response
+    // 7. Get usage context for response
     const usageContext = await getUsageContext(tenantId);
 
-    // 7. Return response
+    // Cache the result (only if not a check request)
+    if (!runCheck) {
+      await cacheSet(cacheKey, { alerts, total, usageContext }, ALERTS_CACHE_TTL);
+    }
+
+    // 8. Return response
     return NextResponse.json({
       success: true,
       data: {
@@ -119,6 +155,7 @@ export async function GET(request: NextRequest) {
         },
         usage: usageContext,
       },
+      _cached: false,
     });
   } catch (error) {
     console.error('[API] GET /api/llm/alerts error:', error);
@@ -227,7 +264,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Return response
+    // 6. Invalidate alerts cache for this tenant
+    await invalidateCache(`llm:alerts:${tenantId}:*`);
+
+    // 7. Return response
     return NextResponse.json({
       success: true,
       data: {
