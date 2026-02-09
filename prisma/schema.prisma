@@ -2075,6 +2075,12 @@ model LLMUsage {
   @@index([createdAt])
   @@index([tenantId, createdAt])
   @@index([model])
+  
+  // Performance indexes for usage analytics
+  @@index([tenantId, success])                    // Success rate queries
+  @@index([tenantId, agentId, createdAt])         // Usage by agent with date filter
+  @@index([tenantId, model, createdAt])           // Usage by model with date filter
+  @@index([tenantId, providerId, createdAt])      // Usage by provider with date filter
 }
 
 // Alertas de consumo do LLM Gateway
@@ -2111,6 +2117,11 @@ model LLMUsageAlert {
   @@index([type])
   @@index([createdAt])
   @@index([acknowledged])
+  
+  // Performance indexes for alerts queries
+  @@index([tenantId, acknowledged])               // Active alerts filter
+  @@index([tenantId, type, createdAt])            // Alerts by type with date range
+  @@index([tenantId, acknowledged, createdAt])    // Unacknowledged alerts sorted by date
 }
 
 // Controle de rate limiting
