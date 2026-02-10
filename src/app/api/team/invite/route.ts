@@ -21,7 +21,15 @@ import {
 import { z } from 'zod';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build errors when RESEND_API_KEY is not set
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 // ============================================================================
 // POST - Send Invitation
@@ -140,9 +148,11 @@ export async function POST(req: NextRequest) {
     
     // Send invitation email
     const inviteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/invite/${invite.token}`;
+    const resend = getResend();
     
-    try {
-      await resend.emails.send({
+    if (resend) {
+      try {
+        await resend.emails.send({
         from: process.env.EMAIL_FROM || 'BaaS <onboarding@resend.dev>',
         to: email,
         subject: `You've been invited to join ${tenant.name} on BaaS`,
@@ -158,10 +168,11 @@ export async function POST(req: NextRequest) {
             <p style="color: #999; font-size: 12px;">If you didn't expect this invitation, you can safely ignore this email.</p>
           </div>
         `,
-      });
-    } catch (emailError) {
-      console.error('[Team Invite] Failed to send email:', emailError);
-      // Don't fail the request - invitation is created, email can be resent
+        });
+      } catch (emailError) {
+        console.error('[Team Invite] Failed to send email:', emailError);
+        // Don't fail the request - invitation is created, email can be resent
+      }
     }
     
     // Log activity
@@ -333,26 +344,29 @@ export async function PATCH(req: NextRequest) {
     
     // Resend email
     const inviteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/invite/${invite.token}`;
+    const resend = getResend();
     
-    try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'BaaS <onboarding@resend.dev>',
-        to: invite.email,
-        subject: `Reminder: You've been invited to join ${tenant?.name} on BaaS`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #8b5cf6;">Team Invitation Reminder</h2>
-            <p><strong>${inviter?.name || 'A team member'}</strong> is reminding you about your invitation to join <strong>${tenant?.name}</strong> on BaaS.</p>
-            <p>Your role: <strong>${invite.role}</strong></p>
-            <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(to right, #8b5cf6, #d946ef); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin: 16px 0;">
-              Accept Invitation
-            </a>
-            <p style="color: #666; font-size: 14px;">This invitation expires in 7 days.</p>
-          </div>
-        `,
-      });
-    } catch (emailError) {
-      console.error('[Team Invite] Failed to resend email:', emailError);
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM || 'BaaS <onboarding@resend.dev>',
+          to: invite.email,
+          subject: `Reminder: You've been invited to join ${tenant?.name} on BaaS`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #8b5cf6;">Team Invitation Reminder</h2>
+              <p><strong>${inviter?.name || 'A team member'}</strong> is reminding you about your invitation to join <strong>${tenant?.name}</strong> on BaaS.</p>
+              <p>Your role: <strong>${invite.role}</strong></p>
+              <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(to right, #8b5cf6, #d946ef); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin: 16px 0;">
+                Accept Invitation
+              </a>
+              <p style="color: #666; font-size: 14px;">This invitation expires in 7 days.</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error('[Team Invite] Failed to resend email:', emailError);
+      }
     }
     
     // Log activity

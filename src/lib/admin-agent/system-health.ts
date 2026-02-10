@@ -6,6 +6,9 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { promises as fs } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 export interface DependencyHealth {
   name: string
@@ -161,6 +164,143 @@ function checkEnvVars(): DependencyHealth {
 }
 
 /**
+ * Check disk space (via df command or fallback)
+ */
+async function checkDiskSpace(): Promise<DependencyHealth> {
+  const start = Date.now()
+  try {
+    // Use child_process to run df command
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
+    
+    const { stdout } = await execAsync('df -h / | tail -1')
+    const parts = stdout.trim().split(/\s+/)
+    const usePercent = parseInt(parts[4]?.replace('%', '') || '0')
+    
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
+    let message: string | undefined
+    
+    if (usePercent > 95) {
+      status = 'unhealthy'
+      message = `Critical: ${usePercent}% used`
+    } else if (usePercent > 85) {
+      status = 'degraded'
+      message = `Warning: ${usePercent}% used`
+    } else {
+      message = `${usePercent}% used`
+    }
+    
+    return {
+      name: 'Disk Space',
+      status,
+      latencyMs: Date.now() - start,
+      message,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name: 'Disk Space',
+      status: 'degraded',
+      latencyMs: Date.now() - start,
+      message: 'Unable to check disk space',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
+ * Check file system write permissions
+ */
+async function checkFileSystem(): Promise<DependencyHealth> {
+  const start = Date.now()
+  const testFile = join(tmpdir(), `.health-check-${Date.now()}`)
+  
+  try {
+    // Test write
+    await fs.writeFile(testFile, 'health-check')
+    // Test read
+    await fs.readFile(testFile)
+    // Cleanup
+    await fs.unlink(testFile)
+    
+    return {
+      name: 'File System',
+      status: 'healthy',
+      latencyMs: Date.now() - start,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name: 'File System',
+      status: 'unhealthy',
+      latencyMs: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Write failed',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
+ * Check LLM API availability (lightweight ping)
+ */
+async function checkLLMApi(
+  name: string,
+  apiKey: string | undefined,
+  testUrl: string
+): Promise<DependencyHealth> {
+  const start = Date.now()
+  
+  if (!apiKey) {
+    return {
+      name,
+      status: 'degraded',
+      latencyMs: 0,
+      message: 'API key not configured',
+      lastCheck: new Date()
+    }
+  }
+  
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey, // For Anthropic
+        'anthropic-version': '2023-06-01'
+      },
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeout)
+    const latency = Date.now() - start
+    
+    // 401/403 means API is reachable but key might be invalid
+    // We still consider it "reachable" for health purposes
+    const isReachable = response.status < 500
+    
+    return {
+      name,
+      status: isReachable ? (latency > 3000 ? 'degraded' : 'healthy') : 'unhealthy',
+      latencyMs: latency,
+      message: response.ok ? undefined : `HTTP ${response.status}`,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name,
+      status: 'unhealthy',
+      latencyMs: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Connection failed',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
  * Run comprehensive system health check
  */
 export async function checkSystemHealth(): Promise<SystemHealth> {
@@ -170,9 +310,19 @@ export async function checkSystemHealth(): Promise<SystemHealth> {
   const dependencyChecks = await Promise.all([
     checkDatabase(),
     Promise.resolve(checkEnvVars()),
-    // Add more dependency checks as needed:
-    // checkExternalApi('OpenAI', 'https://api.openai.com/v1/models'),
-    // checkExternalApi('Stripe', 'https://api.stripe.com/v1'),
+    checkDiskSpace(),
+    checkFileSystem(),
+    // LLM API checks (only if keys are configured)
+    checkLLMApi(
+      'Anthropic Claude',
+      process.env.ANTHROPIC_API_KEY,
+      'https://api.anthropic.com/v1/messages'
+    ),
+    checkLLMApi(
+      'OpenAI',
+      process.env.OPENAI_API_KEY,
+      'https://api.openai.com/v1/models'
+    ),
   ])
   
   // Determine overall status

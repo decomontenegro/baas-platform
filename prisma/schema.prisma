@@ -379,6 +379,23 @@ model Channel {
   @@index([workspaceId])
 }
 
+model ChannelPermission {
+  id                     String   @id
+  tenantId               String
+  channelId              String
+  channelName            String?
+  channelType            String?
+  allowedClassifications String[]
+  deniedClassifications  String[]
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime
+  Tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, channelId])
+  @@index([channelId])
+  @@index([tenantId])
+}
+
 model Conversation {
   id                String              @id
   tenantId          String
@@ -510,6 +527,50 @@ model DailyStats {
   @@index([date])
   @@index([tenantId, channelId, date])
   @@index([tenantId, date])
+  @@index([tenantId])
+}
+
+model DataAuditLog {
+  id                 String          @id
+  tenantId           String
+  agentId            String?
+  action             DataAuditAction
+  dataClassification String
+  sourceDocument     String?
+  targetChannel      String
+  targetChannelName  String?
+  status             String
+  reason             String?
+  requestedBy        String?
+  overriddenBy       String?
+  metadata           Json?           @default("{}")
+  createdAt          DateTime        @default(now())
+  TenantAgent        TenantAgent?    @relation(fields: [agentId], references: [id])
+  Tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([dataClassification])
+  @@index([status])
+  @@index([targetChannel])
+  @@index([tenantId, createdAt])
+}
+
+model DataClassification {
+  id          String          @id
+  tenantId    String
+  label       String
+  slug        String
+  sensitivity DataSensitivity
+  description String?
+  keywords    String[]
+  color       String?
+  icon        String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime
+  Tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([sensitivity])
   @@index([tenantId])
 }
 
@@ -828,6 +889,108 @@ model KnowledgeDocument {
   @@index([status])
 }
 
+model LLMProvider {
+  id                    String                  @id
+  name                  String                  @unique
+  type                  LLMProviderType
+  endpoint              String?
+  model                 String
+  rateLimit             Int                     @default(60)
+  concurrency           Int                     @default(5)
+  costPerInputToken     Float                   @default(0.000003)
+  costPerOutputToken    Float                   @default(0.000015)
+  priority              Int                     @default(1)
+  status                ProviderStatus          @default(ACTIVE)
+  lastCheckedAt         DateTime?
+  lastErrorAt           DateTime?
+  errorCount            Int                     @default(0)
+  metadata              Json?                   @default("{}")
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  LLMUsage              LLMUsage[]
+  ProviderStatusHistory ProviderStatusHistory[]
+
+  @@index([status, priority])
+}
+
+model LLMRateLimitEntry {
+  id           String    @id
+  key          String    @unique
+  requestCount Int       @default(0)
+  tokenCount   Int       @default(0)
+  windowStart  DateTime
+  windowEnd    DateTime
+  blocked      Boolean   @default(false)
+  blockedUntil DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+
+  @@index([windowEnd])
+}
+
+model LLMUsage {
+  id           String         @id
+  tenantId     String
+  agentId      String?
+  providerId   String
+  model        String
+  requestType  LLMRequestType @default(CHAT)
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+  cost         Float
+  channel      String?
+  groupId      String?
+  sessionId    String?
+  latencyMs    Int?
+  success      Boolean        @default(true)
+  errorMessage String?
+  metadata     Json?          @default("{}")
+  createdAt    DateTime       @default(now())
+  TenantAgent  TenantAgent?   @relation(fields: [agentId], references: [id])
+  LLMProvider  LLMProvider    @relation(fields: [providerId], references: [id])
+  Tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@index([model])
+  @@index([providerId])
+  @@index([tenantId, agentId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId])
+  @@index([tenantId, model, createdAt])
+  @@index([tenantId, providerId, createdAt])
+  @@index([tenantId, success])
+}
+
+model LLMUsageAlert {
+  id             String       @id
+  tenantId       String
+  type           LLMAlertType
+  threshold      Float
+  message        String
+  currentUsage   Float
+  limitValue     Float
+  percentUsed    Float
+  acknowledged   Boolean      @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  emailSent      Boolean      @default(false)
+  whatsappSent   Boolean      @default(false)
+  slackSent      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime?
+  Tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([acknowledged])
+  @@index([createdAt])
+  @@index([tenantId, acknowledged, createdAt])
+  @@index([tenantId, acknowledged])
+  @@index([tenantId])
+  @@index([tenantId, type, createdAt])
+  @@index([type])
+}
+
 model Membership {
   id        String       @id
   userId    String
@@ -933,6 +1096,19 @@ model Personality {
 
   @@index([deletedAt])
   @@index([workspaceId])
+}
+
+model ProviderStatusHistory {
+  id          String         @id
+  providerId  String
+  fromStatus  ProviderStatus
+  toStatus    ProviderStatus
+  reason      String?
+  createdAt   DateTime       @default(now())
+  LLMProvider LLMProvider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([providerId])
 }
 
 model QuickAction {
@@ -1249,6 +1425,27 @@ model Tenant {
   @@index([status])
 }
 
+model TenantAgent {
+  id             String         @id
+  tenantId       String
+  name           String
+  role           String?
+  description    String?
+  avatar         String?
+  preferredModel String?
+  dailyLimit     Float?
+  active         Boolean        @default(true)
+  metadata       Json?          @default("{}")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime
+  DataAuditLog   DataAuditLog[]
+  LLMUsage       LLMUsage[]
+  Tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
 model TopicStats {
   id                String   @id
   tenantId          String
@@ -1376,239 +1573,6 @@ model Webhook {
   @@index([workspaceId])
 }
 
-model Workspace {
-  id              String           @id
-  name            String
-  slug            String
-  description     String?
-  tenantId        String
-  settings        Json             @default("{}")
-  timezone        String           @default("America/Sao_Paulo")
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime
-  deletedAt       DateTime?
-  deletedBy       String?
-  Channel         Channel[]
-  Conversation    Conversation[]
-  Feature         Feature[]
-  HandoffRequest  HandoffRequest[]
-  HandoffRule     HandoffRule[]
-  HandoffSettings HandoffSettings?
-  Integration     Integration[]
-  Personality     Personality[]
-  Specialist      Specialist[]
-  UsageLog        UsageLog[]
-  Webhook         Webhook[]
-  Tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([deletedAt])
-  @@index([slug])
-  @@index([tenantId])
-}
-
-model LLMProvider {
-  id                    String                  @id @default(cuid())
-  name                  String                  @unique
-  type                  LLMProviderType
-  endpoint              String?
-  model                 String
-  rateLimit             Int                     @default(60)
-  concurrency           Int                     @default(5)
-  costPerInputToken     Float                   @default(0.000003)
-  costPerOutputToken    Float                   @default(0.000015)
-  priority              Int                     @default(1)
-  status                ProviderStatus          @default(ACTIVE)
-  lastCheckedAt         DateTime?
-  lastErrorAt           DateTime?
-  errorCount            Int                     @default(0)
-  metadata              Json?                   @default("{}")
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  LLMUsage              LLMUsage[]
-  ProviderStatusHistory ProviderStatusHistory[]
-
-  @@index([status, priority])
-}
-
-model ProviderStatusHistory {
-  id         String         @id @default(cuid())
-  providerId String
-  fromStatus ProviderStatus
-  toStatus   ProviderStatus
-  reason     String?
-  createdAt  DateTime       @default(now())
-  provider   LLMProvider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([providerId])
-  @@index([createdAt])
-}
-
-model TenantAgent {
-  id             String         @id @default(cuid())
-  tenantId       String
-  name           String
-  role           String?
-  description    String?
-  avatar         String?
-  preferredModel String?
-  dailyLimit     Float?
-  active         Boolean        @default(true)
-  metadata       Json?          @default("{}")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  DataAuditLog   DataAuditLog[]
-  LLMUsage       LLMUsage[]
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, name])
-  @@index([tenantId])
-}
-
-model LLMUsage {
-  id           String         @id @default(cuid())
-  tenantId     String
-  agentId      String?
-  providerId   String
-  model        String
-  requestType  LLMRequestType @default(CHAT)
-  inputTokens  Int
-  outputTokens Int
-  totalTokens  Int
-  cost         Float
-  channel      String?
-  groupId      String?
-  sessionId    String?
-  latencyMs    Int?
-  success      Boolean        @default(true)
-  errorMessage String?
-  metadata     Json?          @default("{}")
-  createdAt    DateTime       @default(now())
-  agent        TenantAgent?   @relation(fields: [agentId], references: [id])
-  provider     LLMProvider    @relation(fields: [providerId], references: [id])
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([agentId])
-  @@index([providerId])
-  @@index([createdAt])
-  @@index([tenantId, createdAt])
-  @@index([model])
-  
-  // Performance indexes for usage analytics
-  @@index([tenantId, success])
-  @@index([tenantId, agentId, createdAt])
-  @@index([tenantId, model, createdAt])
-  @@index([tenantId, providerId, createdAt])
-}
-
-model LLMUsageAlert {
-  id             String       @id @default(cuid())
-  tenantId       String
-  type           LLMAlertType
-  threshold      Float
-  message        String
-  currentUsage   Float
-  limitValue     Float
-  percentUsed    Float
-  acknowledged   Boolean      @default(false)
-  acknowledgedBy String?
-  acknowledgedAt DateTime?
-  emailSent      Boolean      @default(false)
-  whatsappSent   Boolean      @default(false)
-  slackSent      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  expiresAt      DateTime?
-  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([type])
-  @@index([createdAt])
-  @@index([acknowledged])
-  
-  // Performance indexes for alerts queries
-  @@index([tenantId, acknowledged])
-  @@index([tenantId, type, createdAt])
-  @@index([tenantId, acknowledged, createdAt])
-}
-
-model DataClassification {
-  id          String          @id @default(cuid())
-  tenantId    String
-  label       String
-  slug        String
-  sensitivity DataSensitivity
-  description String?
-  keywords    String[]
-  color       String?
-  icon        String?
-  active      Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-  @@index([sensitivity])
-}
-
-model ChannelPermission {
-  id                     String   @id @default(cuid())
-  tenantId               String
-  channelId              String
-  channelName            String?
-  channelType            String?
-  allowedClassifications String[]
-  deniedClassifications  String[]
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, channelId])
-  @@index([tenantId])
-  @@index([channelId])
-}
-
-model LLMRateLimitEntry {
-  id           String    @id @default(cuid())
-  key          String    @unique
-  requestCount Int       @default(0)
-  tokenCount   Int       @default(0)
-  windowStart  DateTime
-  windowEnd    DateTime
-  blocked      Boolean   @default(false)
-  blockedUntil DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@index([windowEnd])
-}
-
-model DataAuditLog {
-  id                 String          @id
-  tenantId           String
-  agentId            String?
-  action             DataAuditAction
-  dataClassification String
-  sourceDocument     String?
-  targetChannel      String
-  targetChannelName  String?
-  status             String
-  reason             String?
-  requestedBy        String?
-  overriddenBy       String?
-  metadata           Json?           @default("{}")
-  createdAt          DateTime        @default(now())
-  TenantAgent        TenantAgent?    @relation(fields: [agentId], references: [id])
-  Tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([dataClassification])
-  @@index([status])
-  @@index([targetChannel])
-  @@index([tenantId, createdAt])
-}
-
 model Worker {
   id                String       @id
   tenantId          String
@@ -1658,6 +1622,38 @@ model WorkerLog {
   @@index([event])
   @@index([level])
   @@index([workerId, createdAt])
+}
+
+model Workspace {
+  id              String           @id
+  name            String
+  slug            String
+  description     String?
+  tenantId        String
+  settings        Json             @default("{}")
+  timezone        String           @default("America/Sao_Paulo")
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  deletedBy       String?
+  Channel         Channel[]
+  Conversation    Conversation[]
+  Feature         Feature[]
+  HandoffRequest  HandoffRequest[]
+  HandoffRule     HandoffRule[]
+  HandoffSettings HandoffSettings?
+  Integration     Integration[]
+  Personality     Personality[]
+  Specialist      Specialist[]
+  UsageLog        UsageLog[]
+  Webhook         Webhook[]
+  Tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([deletedAt])
+  @@index([slug])
+  @@index([tenantId])
 }
 
 enum ActionExecutionStatus {
@@ -1811,6 +1807,20 @@ enum CreditType {
   API_CALL
   STORAGE
   BONUS
+}
+
+enum DataAuditAction {
+  SHARE_ALLOWED
+  SHARE_BLOCKED
+  OVERRIDE_ALLOWED
+  CLASSIFICATION_DETECTED
+}
+
+enum DataSensitivity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum DocumentStatus {
@@ -1972,6 +1982,41 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum LLMAlertType {
+  BUDGET_WARNING
+  BUDGET_CRITICAL
+  BUDGET_EXCEEDED
+  DAILY_WARNING
+  DAILY_EXCEEDED
+  PROVIDER_ERROR
+  RATE_LIMIT
+}
+
+enum LLMProviderType {
+  CLAUDE_MAX
+  CLAUDE_API
+  OPENAI_API
+  GOOGLE_API
+  LOCAL
+}
+
+enum LLMRequestType {
+  CHAT
+  COMPLETION
+  EMBEDDING
+  FUNCTION_CALL
+  VISION
+  AUDIO
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
 enum MemberRole {
   OWNER
   ADMIN
@@ -2024,6 +2069,15 @@ enum NotificationType {
   MENTION
   DAILY_SUMMARY
   SYSTEM
+}
+
+enum ProviderStatus {
+  ACTIVE
+  DEGRADED
+  RATE_LIMITED
+  CIRCUIT_OPEN
+  MAINTENANCE
+  DISABLED
 }
 
 enum QuickActionType {
@@ -2146,64 +2200,6 @@ enum WebhookEvent {
   APPOINTMENT_BOOKED
   PAYMENT_RECEIVED
   ERROR
-}
-
-enum LLMProviderType {
-  CLAUDE_MAX
-  CLAUDE_API
-  OPENAI_API
-  GOOGLE_API
-  LOCAL
-}
-
-enum ProviderStatus {
-  ACTIVE
-  DEGRADED
-  RATE_LIMITED
-  CIRCUIT_OPEN
-  MAINTENANCE
-  DISABLED
-}
-
-enum LLMRequestType {
-  CHAT
-  COMPLETION
-  EMBEDDING
-  FUNCTION_CALL
-  VISION
-  AUDIO
-}
-
-enum LLMAlertType {
-  BUDGET_WARNING
-  BUDGET_CRITICAL
-  BUDGET_EXCEEDED
-  DAILY_WARNING
-  DAILY_EXCEEDED
-  PROVIDER_ERROR
-  RATE_LIMIT
-}
-
-enum DataAuditAction {
-  SHARE_ALLOWED
-  SHARE_BLOCKED
-  OVERRIDE_ALLOWED
-  CLASSIFICATION_DETECTED
-}
-
-enum DataSensitivity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum LogLevel {
-  DEBUG
-  INFO
-  WARN
-  ERROR
-  FATAL
 }
 
 enum WorkerStatus {

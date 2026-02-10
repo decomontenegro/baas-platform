@@ -7,7 +7,15 @@ import { Resend } from "resend"
 import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization to avoid build errors when RESEND_API_KEY is not set
+let _resend: Resend | null = null
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return _resend
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -70,6 +78,12 @@ export const authOptions: NextAuthOptions = {
       sendVerificationRequest: async ({ identifier: email, url }) => {
         console.log(`[Auth] Sending magic link to ${email}`)
         console.log(`[Auth] Callback URL: ${url}`)
+        
+        const resend = getResend()
+        if (!resend) {
+          console.error("[Auth] RESEND_API_KEY not configured, cannot send magic link")
+          throw new Error("Email service not configured")
+        }
         
         try {
           const result = await resend.emails.send({

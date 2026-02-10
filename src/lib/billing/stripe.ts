@@ -6,11 +6,25 @@ import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import { getPlan, type PlanId } from './plans'
 
-// Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
-  typescript: true,
-})
+// Lazy initialization to avoid build errors when STRIPE_SECRET_KEY is not set
+let _stripe: Stripe | null = null
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia',
+      typescript: true,
+    })
+  }
+  return _stripe
+}
+
+// Helper to check if Stripe is configured
+export function isStripeConfigured(): boolean {
+  return !!process.env.STRIPE_SECRET_KEY
+}
 
 // Webhook signing secret
 export const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
@@ -40,7 +54,7 @@ export async function getOrCreateCustomer(
   })
 
   // Create Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await getStripe().customers.create({
     email,
     name: name || tenant?.name,
     metadata: {
@@ -85,7 +99,7 @@ export async function createCheckoutSession(
   const customerId = await getOrCreateCustomer(tenantId, customerEmail)
 
   // Create checkout session
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     payment_method_types: ['card', 'boleto'],
     line_items: [
@@ -133,7 +147,7 @@ export async function createPortalSession(
     throw new Error('No Stripe customer found for this tenant')
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripe().billingPortal.sessions.create({
     customer: subscription.stripeCustomerId,
     return_url: returnUrl,
   })
@@ -151,7 +165,7 @@ export async function handleWebhookEvent(
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err) {
     throw new Error(`Webhook signature verification failed: ${err}`)
   }
@@ -438,9 +452,9 @@ export async function cancelSubscription(
   }
 
   if (cancelImmediately) {
-    await stripe.subscriptions.cancel(subscription.stripeSubscriptionId)
+    await getStripe().subscriptions.cancel(subscription.stripeSubscriptionId)
   } else {
-    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+    await getStripe().subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true,
     })
 
@@ -472,4 +486,5 @@ function mapStripeStatus(status: Stripe.Subscription.Status): 'ACTIVE' | 'PAST_D
   }
 }
 
-export { stripe }
+// Export getStripe for direct Stripe SDK access when needed
+export { getStripe }

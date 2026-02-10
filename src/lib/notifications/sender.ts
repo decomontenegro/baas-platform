@@ -13,7 +13,15 @@ import { Resend } from 'resend'
 import { renderNotificationEmail } from './email-templates'
 import { pushToRealtime } from './realtime'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization to avoid build errors when RESEND_API_KEY is not set
+let _resend: Resend | null = null
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return _resend
+}
 
 export interface SendNotificationOptions {
   userId: string
@@ -100,24 +108,29 @@ export async function sendNotification(
 
   // 2. Email notification
   if (force || preferences.email) {
-    try {
-      const html = renderNotificationEmail({
-        type,
-        title,
-        body,
-        data,
-        userName: user.name || undefined,
-      })
+    const resend = getResend()
+    if (!resend) {
+      errors.push('Email notification skipped: RESEND_API_KEY not configured')
+    } else {
+      try {
+        const html = renderNotificationEmail({
+          type,
+          title,
+          body,
+          data,
+          userName: user.name || undefined,
+        })
 
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'BaaS <notifications@resend.dev>',
-        to: user.email,
-        subject: title,
-        html,
-      })
-      channels.email = true
-    } catch (error) {
-      errors.push(`Email notification failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM || 'BaaS <notifications@resend.dev>',
+          to: user.email,
+          subject: title,
+          html,
+        })
+        channels.email = true
+      } catch (error) {
+        errors.push(`Email notification failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
     }
   }
 
