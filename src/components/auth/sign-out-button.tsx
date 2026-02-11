@@ -1,8 +1,8 @@
 "use client"
 
-import { signOut } from "next-auth/react"
 import { LogOut, Loader2 } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface SignOutButtonProps {
   className?: string
@@ -18,10 +18,20 @@ export function SignOutButton({
   children 
 }: SignOutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleSignOut = async () => {
     setIsLoading(true)
-    await signOut({ callbackUrl: "/login" })
+    try {
+      // Use simple auth logout
+      await fetch("/api/simple-auth", { method: "DELETE" })
+      router.push("/simple-login")
+      router.refresh()
+    } catch (error) {
+      console.error("Logout failed:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const baseStyles = "inline-flex items-center gap-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
