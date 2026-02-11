@@ -1,255 +1,93 @@
 import { NextRequest } from 'next/server'
-// Force dynamic rendering
+
 export const dynamic = 'force-dynamic'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
-import { handleApiError, apiResponse, NotFoundError, ForbiddenError, UnauthorizedError, noContent } from '@/lib/api/errors'
-import { parseBody, updateConversationSchema } from '@/lib/api/validate'
 
-// Helper to get authenticated session
-async function requireAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    throw new UnauthorizedError()
-  }
-  return session
-}
-
-// Helper to get conversation with tenant check
-async function getConversation(id: string, tenantId: string) {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id },
-    include: {
-      Workspace: { select: { id: true, name: true } },
-      Channel: { select: { id: true, name: true, type: true } },
-      User: { select: { id: true, name: true, email: true, image: true } },
-      events: {
-        orderBy: { createdAt: 'asc' },
-        include: {
-          actor: { select: { id: true, name: true, email: true } },
-        },
-      },
-      notes: {
-        where: { deletedAt: null },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true } },
-        },
-      },
-      _count: {
-        select: { Message: true },
-      },
-    },
-  })
-
-  if (!conversation || conversation.deletedAt) {
-    throw new NotFoundError('Conversation')
-  }
-
-  if (conversation.tenantId !== tenantId) {
-    throw new ForbiddenError('Access denied to this conversation')
-  }
-
-  return conversation
-}
-
-// GET /api/conversations/[id] - Get conversation details
+/**
+ * GET /api/conversations/[id]
+ * Returns a single conversation with messages
+ */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
+  const { id } = params
+  const baseUrl = request.nextUrl.origin
+  
   try {
-    const session = await requireAuth()
-    const tenantId = session.user.tenantId
-    const { id } = await params
-
-    if (!tenantId) {
-      throw new NotFoundError('Tenant')
+    // Fetch all conversations from Clawdbot
+    const res = await fetch(`${baseUrl}/api/clawdbot/conversations`)
+    const data = await res.json()
+    
+    if (data.success && data.data) {
+      // Find the specific conversation
+      const conv = data.data.find((c: { id: string }) => c.id === id)
+      
+      if (conv) {
+        // Return conversation with expected format
+        return Response.json({
+          id: conv.id,
+          contactId: conv.id,
+          contactName: conv.name || conv.id,
+          subject: null,
+          status: conv.status === 'active' ? 'ACTIVE' : 'RESOLVED',
+          priority: 'NORMAL',
+          channel: {
+            id: conv.channel,
+            name: conv.channel.charAt(0).toUpperCase() + conv.channel.slice(1),
+            type: conv.channel.toUpperCase()
+          },
+          workspace: {
+            id: 'clawdbot-workspace',
+            name: 'Clawdbot'
+          },
+          assignee: null,
+          tags: [],
+          metadata: {},
+          createdAt: conv.lastActivity,
+          updatedAt: conv.lastActivity,
+          lastMessageAt: conv.lastActivity,
+          resolvedAt: null,
+          archivedAt: null,
+          // Messages array (empty for now, could be populated from Clawdbot)
+          messages: [],
+          // Events/notes
+          events: [],
+          notes: [],
+          _count: {
+            Message: 0
+          }
+        })
+      }
     }
-
-    const conversation = await getConversation(id, tenantId)
-
-    // Calculate conversation stats
-    const stats = await prisma.message.aggregate({
-      where: { conversationId: id, deletedAt: null },
-      _count: { id: true },
-      _min: { createdAt: true },
-      _max: { createdAt: true },
-    })
-
-    const messagesByRole = await prisma.message.groupBy({
-      by: ['role'],
-      where: { conversationId: id, deletedAt: null },
-      _count: { id: true },
-    })
-
-    const duration = stats._min?.createdAt && stats._max?.createdAt
-      ? Math.round((stats._max.createdAt.getTime() - stats._min.createdAt.getTime()) / 1000)
-      : 0
-
-    return apiResponse({
-      conversation,
-      stats: {
-        messageCount: stats._count?.id || 0,
-        durationSeconds: duration,
-        messagesByRole: messagesByRole.reduce((acc, item) => {
-          acc[item.role] = item._count.id
-          return acc
-        }, {} as Record<string, number>),
-        firstMessageAt: stats._min?.createdAt,
-        lastMessageAt: stats._max?.createdAt,
-      },
-    })
   } catch (error) {
-    return handleApiError(error)
+    console.error('Error fetching conversation:', error)
   }
+  
+  // Not found
+  return Response.json(
+    { error: 'Conversation not found' },
+    { status: 404 }
+  )
 }
 
-// PATCH /api/conversations/[id] - Update conversation
+/**
+ * PATCH /api/conversations/[id]
+ * Update conversation (placeholder)
+ */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  try {
-    const session = await requireAuth()
-    const tenantId = session.user.tenantId
-    const userId = session.user.id
-    const { id } = await params
-
-    if (!tenantId) {
-      throw new NotFoundError('Tenant')
-    }
-
-    // Verify access
-    const existing = await getConversation(id, tenantId)
-    const data = await parseBody(request, updateConversationSchema)
-
-    // Track status change for event
-    const statusChanged = data.status && data.status !== existing.status
-    const assigneeChanged = data.UserId !== undefined && data.UserId !== existing.UserId
-
-    // Build update data
-    const updateData: any = {}
-    
-    if (data.status !== undefined) {
-      updateData.status = data.status
-      if (data.status === 'RESOLVED') {
-        updateData.resolvedAt = new Date()
-      } else if (existing.status === 'RESOLVED' && data.status !== 'RESOLVED') {
-        updateData.resolvedAt = null
-      }
-      if (data.status === 'HANDOFF') {
-        updateData.handoffAt = new Date()
-      }
-    }
-    
-    if (data.subject !== undefined) {
-      updateData.subject = data.subject
-    }
-    
-    if (data.tags !== undefined) {
-      updateData.tags = data.tags
-    }
-    
-    if (data.UserId !== undefined) {
-      updateData.UserId = data.UserId
-    }
-
-    const conversation = await prisma.conversation.update({
-      where: { id },
-      data: updateData,
-      include: {
-        Workspace: { select: { id: true, name: true } },
-        Channel: { select: { id: true, name: true, type: true } },
-        User: { select: { id: true, name: true, email: true, image: true } },
-      },
-    })
-
-    // Create events for changes
-    if (statusChanged) {
-      await prisma.conversationEvent.create({
-        data: {
-          conversationId: id,
-          type: 'STATUS_CHANGED',
-          actorId: userId,
-          data: {
-            from: existing.status,
-            to: data.status,
-          },
-        },
-      })
-    }
-
-    if (assigneeChanged) {
-      await prisma.conversationEvent.create({
-        data: {
-          conversationId: id,
-          type: data.UserId ? 'ASSIGNED' : 'UNASSIGNED',
-          actorId: userId,
-          data: {
-            from: existing.UserId,
-            to: data.UserId,
-          },
-        },
-      })
-    }
-
-    return apiResponse({ conversation })
-  } catch (error) {
-    return handleApiError(error)
-  }
+  return Response.json({ success: true, id: params.id })
 }
 
-// DELETE /api/conversations/[id] - Archive/Delete conversation
+/**
+ * DELETE /api/conversations/[id]
+ * Delete conversation (placeholder)
+ */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  try {
-    const session = await requireAuth()
-    const tenantId = session.user.tenantId
-    const userId = session.user.id
-    const { id } = await params
-
-    if (!tenantId) {
-      throw new NotFoundError('Tenant')
-    }
-
-    // Verify access
-    await getConversation(id, tenantId)
-
-    // Check query param for hard delete vs soft delete
-    const url = new URL(request.url)
-    const hardDelete = url.searchParams.get('hard') === 'true'
-
-    if (hardDelete) {
-      // Hard delete (admin only - would add role check in production)
-      await prisma.conversation.delete({
-        where: { id },
-      })
-    } else {
-      // Soft delete
-      await prisma.conversation.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          deletedBy: userId,
-          status: 'ARCHIVED',
-        },
-      })
-
-      // Create archived event
-      await prisma.conversationEvent.create({
-        data: {
-          conversationId: id,
-          type: 'ARCHIVED',
-          actorId: userId,
-        },
-      })
-    }
-
-    return noContent()
-  } catch (error) {
-    return handleApiError(error)
-  }
+  return Response.json({ success: true })
 }
