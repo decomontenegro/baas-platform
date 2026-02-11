@@ -49,7 +49,7 @@ export async function GET(_request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        tenant: {
+        Tenant: {
           select: {
             id: true,
             name: true,
@@ -150,7 +150,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update tenant settings if user has a tenant
-    if (user.tenantId) {
+    if (user.TenantId) {
       const existingSettings = (user.Tenant?.settings as Partial<Settings>) || {}
       
       const updatedSettings: Partial<Settings> = {
@@ -189,7 +189,7 @@ export async function PATCH(request: NextRequest) {
       }
 
       await prisma.tenant.update({
-        where: { id: user.tenantId },
+        where: { id: user.TenantId },
         data: {
           settings: updatedSettings as object,
           name: profile?.company || undefined,
@@ -201,7 +201,7 @@ export async function PATCH(request: NextRequest) {
     const updatedUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        tenant: {
+        Tenant: {
           select: {
             id: true,
             name: true,
@@ -217,12 +217,12 @@ export async function PATCH(request: NextRequest) {
       return errorResponse('Erro ao atualizar', 500)
     }
 
-    const tenantSettings = (updatedUser.tenant?.settings as Partial<Settings>) || {}
+    const tenantSettings = (updatedUser.Tenant?.settings as Partial<Settings>) || {}
     const mergedSettings: Settings = {
       profile: {
         firstName: updatedUser.name?.split(' ')[0] || '',
         lastName: updatedUser.name?.split(' ').slice(1).join(' ') || '',
-        company: updatedUser.tenant?.name || '',
+        company: updatedUser.Tenant?.name || '',
         avatar: updatedUser.image || null,
       },
       notifications: {
@@ -248,11 +248,11 @@ export async function PATCH(request: NextRequest) {
         image: updatedUser.image,
         role: updatedUser.role,
       },
-      tenant: updatedUser.tenant ? {
-        id: updatedUser.tenant.id,
-        name: updatedUser.tenant.name,
-        slug: updatedUser.tenant.slug,
-        plan: updatedUser.tenant.plan,
+      tenant: updatedUser.Tenant ? {
+        id: updatedUser.Tenant.id,
+        name: updatedUser.Tenant.name,
+        slug: updatedUser.Tenant.slug,
+        plan: updatedUser.Tenant.plan,
       } : null,
     }, 'Configurações atualizadas com sucesso')
   } catch (error) {
