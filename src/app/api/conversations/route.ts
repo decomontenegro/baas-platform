@@ -35,9 +35,14 @@ export async function GET(request: NextRequest) {
       }))
       
       // Return in format expected by useConversationsInfinite hook
+      // Note: total/active/etc must be at root level, not nested in meta
+      const meta = data.meta || { total: conversations.length, active: conversations.length, handoff: 0, unread: 0 }
       return Response.json({
         conversations: conversations,
-        meta: data.meta || { total: conversations.length },
+        total: meta.total,
+        active: meta.active,
+        handoff: meta.handoff,
+        unread: meta.unread,
         pageParams: { page: 1, limit: 100 }
       })
     }
@@ -47,7 +52,10 @@ export async function GET(request: NextRequest) {
   
   return Response.json({
     conversations: [],
-    meta: { total: 0, active: 0, handoff: 0, unread: 0 },
+    total: 0,
+    active: 0,
+    handoff: 0,
+    unread: 0,
     pageParams: { page: 1, limit: 100 }
   })
 }
