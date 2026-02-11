@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
         }
       }))
       
-      // Return in format expected by hooks (data directly, not wrapped)
+      // Return in format expected by useConversationsInfinite hook
       return Response.json({
-        data: conversations,
+        conversations: conversations,
         meta: data.meta || { total: conversations.length },
         pageParams: { page: 1, limit: 100 }
       })
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   }
   
   return Response.json({
-    data: [],
+    conversations: [],
     meta: { total: 0, active: 0, handoff: 0, unread: 0 },
     pageParams: { page: 1, limit: 100 }
   })
