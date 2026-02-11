@@ -207,7 +207,7 @@ export default function SetupWizardPage() {
                 {currentStep > step.id ? (
                   <CheckCircle2 className="w-5 h-5" />
                 ) : (
-                  <step.icon className="w-5 h-5" />
+                  <Circle className="w-5 h-5" />
                 )}
               </div>
               <span className="text-xs mt-1 hidden sm:block">{step.title}</span>
@@ -220,9 +220,6 @@ export default function SetupWizardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {STEPS[currentStep - 1].icon && (
-              <span>{<STEPS[currentStep - 1].icon className="w-5 h-5" />}</span>
-            )}
             {STEPS[currentStep - 1].title}
           </CardTitle>
           <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
