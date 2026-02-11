@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
         }
       }))
       
-      // Return in format expected by hooks
+      // Return in format expected by useChannels hook
       return Response.json({
-        data: channels,
+        channels: channels,
         meta: {
           total: channels.length,
           connected: channels.filter((c: { status: string }) => c.status === 'ACTIVE').length
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   }
   
   return Response.json({
-    data: [],
+    channels: [],
     meta: { total: 0 }
   })
 }

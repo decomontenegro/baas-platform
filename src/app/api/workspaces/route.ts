@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
     
     if (statsData.success) {
       // Create a virtual workspace from Clawdbot data
-      // Return in format expected by hooks
+      // Return in format expected by useWorkspaces hook
       return Response.json({
-        data: [{
+        workspaces: [{
           id: 'clawdbot-workspace',
           name: 'Clawdbot Workspace',
           slug: 'clawdbot',
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   
   // Fallback empty response
   return Response.json({
-    data: [],
+    workspaces: [],
     meta: { total: 0, page: 1, limit: 100 }
   })
 }
