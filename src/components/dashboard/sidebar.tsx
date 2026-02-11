@@ -11,7 +11,6 @@ import {
   Calendar,
   ChevronDown,
   ChevronLeft,
-  ChevronsUpDown,
   CreditCard,
   Headphones,
   Home,
@@ -21,7 +20,6 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
-  Plus,
   Settings,
   Users,
   Webhook,
@@ -116,11 +114,8 @@ const navigation: NavGroup[] = [
   },
 ]
 
-const tenants = [
-  { id: "1", name: "BaaS Dashboard", plan: "Pro" },
-  { id: "2", name: "Startup Beta", plan: "Free" },
-  { id: "3", name: "Corp Gamma", plan: "Enterprise" },
-]
+// TODO: Multi-tenant v2 - implementar switch real de organizações
+// Por enquanto, single-tenant apenas
 
 interface SidebarProps {
   collapsed?: boolean
@@ -130,7 +125,6 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false, onCollapse, className }: SidebarProps) {
   const pathname = usePathname()
-  const [currentTenant, setCurrentTenant] = React.useState(tenants[0])
   const [focusedGroupIndex, setFocusedGroupIndex] = React.useState<number | null>(null)
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number>(0)
   const navRef = React.useRef<HTMLDivElement>(null)
@@ -206,76 +200,29 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
       aria-label="Navegação principal"
     >
       {/* Header with Tenant Switcher */}
+      {/* TODO: Multi-tenant v2 - por enquanto single-tenant */}
       <div className="flex items-center h-[var(--header-height)] px-4 border-b">
         {collapsed ? (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="w-full"
-            aria-label="Selecionar organização"
-          >
+          <div className="flex items-center justify-center w-full">
             <Building2 className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          </div>
         ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-between px-2"
-                aria-label={`Organização atual: ${currentTenant.name}. Clique para trocar`}
-                aria-haspopup="listbox"
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div 
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
-                    aria-hidden="true"
-                  >
-                    <Building2 className="h-4 w-4" />
-                  </div>
-                  <div className="flex flex-col items-start overflow-hidden">
-                    <span className="truncate text-sm font-medium">
-                      {currentTenant.name}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {currentTenant.plan}
-                    </span>
-                  </div>
-                </div>
-                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[240px]" role="listbox">
-              <DropdownMenuLabel>Organizações</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {tenants.map((tenant) => (
-                <DropdownMenuItem
-                  key={tenant.id}
-                  onClick={() => setCurrentTenant(tenant)}
-                  className="cursor-pointer"
-                  role="option"
-                  aria-selected={currentTenant.id === tenant.id}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="flex h-6 w-6 items-center justify-center rounded bg-muted"
-                      aria-hidden="true"
-                    >
-                      <Building2 className="h-3 w-3" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm">{tenant.name}</span>
-                      <span className="text-xs text-muted-foreground">{tenant.plan}</span>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                Nova Organização
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2 overflow-hidden w-full">
+            <div 
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
+              aria-hidden="true"
+            >
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col items-start overflow-hidden">
+              <span className="truncate text-sm font-medium">
+                BaaS Dashboard
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                Pro
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -367,7 +314,7 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
               <DropdownMenuLabel>
                 <div className="flex flex-col">
                   <span>Usuário</span>
-                  <span className="text-xs text-muted-foreground">seu@email.com</span>
+                  <span className="text-xs text-muted-foreground">Minha conta</span>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -388,7 +335,7 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
               <Button 
                 variant="ghost" 
                 className="w-full justify-start px-2"
-                aria-label="Menu do usuário: Usuário, seu@email.com"
+                aria-label="Menu do usuário: Minha conta"
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -398,7 +345,7 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                   <div className="flex flex-col items-start overflow-hidden">
                     <span className="truncate text-sm font-medium">Usuário</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      seu@email.com
+                      Minha conta
                     </span>
                   </div>
                 </div>
