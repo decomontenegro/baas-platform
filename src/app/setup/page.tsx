@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Circle, ArrowRight } from "lucide-react"
+import { CheckCircle2, Circle, ArrowRight, Loader2, Smartphone } from "lucide-react"
 
 interface SetupStep {
   id: string
@@ -13,8 +13,15 @@ interface SetupStep {
   current: boolean
 }
 
+interface WhatsAppStatus {
+  connected: boolean
+  phone?: string | null
+  name?: string | null
+  lastSeen?: string | null
+}
+
 export default function SetupWizardPage() {
-  const [steps] = React.useState<SetupStep[]>([
+  const [steps, setSteps] = React.useState<SetupStep[]>([
     {
       id: "whatsapp",
       title: "WhatsApp",
@@ -23,7 +30,7 @@ export default function SetupWizardPage() {
       current: true
     },
     {
-      id: "llm",
+      id: "llm", 
       title: "LLM",
       description: "Configurar provider",
       completed: false,
@@ -31,7 +38,7 @@ export default function SetupWizardPage() {
     },
     {
       id: "agent",
-      title: "Agente", 
+      title: "Agente",
       description: "Definir persona",
       completed: false,
       current: false
@@ -45,12 +52,52 @@ export default function SetupWizardPage() {
     },
     {
       id: "deploy",
-      title: "Deploy",
+      title: "Deploy", 
       description: "Ativar bot",
       completed: false,
       current: false
     }
   ])
+
+  const [connectionStatus, setConnectionStatus] = React.useState<WhatsAppStatus | null>(null)
+  const [isChecking, setIsChecking] = React.useState(false)
+  const [lastChecked, setLastChecked] = React.useState<Date | null>(null)
+
+  const checkConnection = async () => {
+    setIsChecking(true)
+    try {
+      const response = await fetch('/api/clawdbot/whatsapp/link')
+      const data = await response.json()
+      
+      if (data.success) {
+        setConnectionStatus(data.data)
+        setLastChecked(new Date())
+        
+        // Update steps if connected
+        if (data.data.connected) {
+          setSteps(prev => prev.map(step => 
+            step.id === 'whatsapp' 
+              ? { ...step, completed: true, current: false }
+              : step.id === 'llm'
+              ? { ...step, current: true }
+              : step
+          ))
+        }
+      }
+    } catch (error) {
+      console.error('Error checking connection:', error)
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  // Auto-check on mount
+  React.useEffect(() => {
+    checkConnection()
+  }, [])
+
+  const currentStepIndex = steps.findIndex(step => step.current)
+  const canProceed = connectionStatus?.connected || false
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -62,7 +109,7 @@ export default function SetupWizardPage() {
         </div>
 
         {/* Steps Navigation */}
-        <div className="flex items-center justify-center mb-8 space-x-2">
+        <div className="flex items-center justify-center mb-8 space-x-2 flex-wrap">
           {steps.map((step, index) => (
             <React.Fragment key={step.id}>
               <div className="flex items-center space-x-2">
@@ -91,11 +138,45 @@ export default function SetupWizardPage() {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <span>📱</span>
+              <Smartphone className="w-5 h-5" />
               <span>WhatsApp</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Connection Status */}
+            {connectionStatus && (
+              <div className={`p-4 rounded-lg border ${
+                connectionStatus.connected 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-yellow-50 border-yellow-200'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  {connectionStatus.connected ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-800">Conectado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="w-5 h-5 text-yellow-600" />
+                      <span className="font-medium text-yellow-800">Aguardando conexão</span>
+                    </>
+                  )}
+                </div>
+                {connectionStatus.connected && connectionStatus.phone && (
+                  <p className="text-sm text-green-700 mt-1">
+                    Telefone: {connectionStatus.phone}
+                  </p>
+                )}
+                {lastChecked && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Último check: {lastChecked.toLocaleTimeString('pt-BR')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Instructions */}
             <div>
               <h3 className="font-semibold mb-2">Conectar WhatsApp</h3>
               <p className="text-gray-600 mb-4">
@@ -108,12 +189,34 @@ export default function SetupWizardPage() {
                 Escaneie o QR code com seu WhatsApp para vincular.
               </p>
             </div>
+
+            {/* Check Connection Button */}
+            <div className="flex justify-center">
+              <Button 
+                onClick={checkConnection}
+                disabled={isChecking}
+                variant="outline"
+              >
+                {isChecking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    Verificar Conexão
+                  </>
+                )}
+              </Button>
+            </div>
             
+            {/* Navigation */}
             <div className="pt-4 border-t flex justify-between">
               <Button variant="outline" disabled>
                 Anterior
               </Button>
-              <Button>
+              <Button disabled={!canProceed}>
                 Próximo
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
