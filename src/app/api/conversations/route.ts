@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
     
     if (data.success && data.data) {
       // Transform to expected format
+      // Status mapping: active -> ACTIVE, others -> RESOLVED (valid: ACTIVE, WAITING, HANDOFF, RESOLVED, ARCHIVED)
       const conversations = data.data.map((conv: { id: string; name: string; type: string; channel: string; status: string; lastActivity: string }) => ({
         id: conv.id,
         title: conv.name,
-        status: conv.status === 'active' ? 'OPEN' : 'CLOSED',
+        status: conv.status === 'active' ? 'ACTIVE' : 'RESOLVED',
         channel: conv.channel.toUpperCase(),
         channelType: conv.type,
         WorkspaceId: 'clawdbot-workspace',
