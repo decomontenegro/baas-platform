@@ -21,6 +21,7 @@ import {
   Megaphone,
   MessageSquare,
   Settings,
+  Terminal,
   Users,
   Webhook,
   Workflow,
@@ -109,6 +110,7 @@ const navigation: NavGroup[] = [
     title: "Conta",
     items: [
       { title: "Faturamento", href: "/billing", icon: CreditCard },
+      { title: "Console", href: "/console", icon: Terminal, badge: "NOVO" },
       { title: "Configurações", href: "/dashboard/settings", icon: Settings },
     ],
   },
