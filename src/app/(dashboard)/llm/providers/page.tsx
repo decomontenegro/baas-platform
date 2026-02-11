@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ProviderStatusBadge, type ProviderStatus } from "@/components/llm"
+import { ProviderStatusBadge, OAuthUsageCard, type ProviderStatus } from "@/components/llm"
 
 interface MockProvider {
   id: string
@@ -29,20 +29,29 @@ export default function LLMProvidersPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {mockProviders.map((provider) => (
-          <Card key={provider.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">{provider.name}</CardTitle>
-              <ProviderStatusBadge status={provider.status} />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {provider.models} modelos disponíveis
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* OAuth Usage Card */}
+      <div className="max-w-md">
+        <OAuthUsageCard />
+      </div>
+
+      {/* Providers Grid */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Providers Configurados</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {mockProviders.map((provider) => (
+            <Card key={provider.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg">{provider.name}</CardTitle>
+                <ProviderStatusBadge status={provider.status} />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {provider.models} modelos disponíveis
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )
