@@ -47,10 +47,10 @@ async function sendViaSession(message: string, sessionId: string): Promise<strin
       .replace(/\$/g, '\\$')
       .replace(/`/g, '\\`')
     
-    // Use clawdbot agent - talks directly to the agent via Gateway
-    // --session-id keeps conversation context
+    // Use clawdbot agent - talks directly to the main agent via Gateway
+    // Uses agent:main:main session key for the primary agent
     // --json for parseable output
-    const cmd = `clawdbot agent --session-id "${sessionId}" --message "${escapedMessage}" --json 2>&1`
+    const cmd = `clawdbot agent --session-id "agent:main:main" --message "${escapedMessage}" --json 2>&1`
     
     const result = execSync(cmd, {
       timeout: 120000, // 120 second timeout for LLM response (can be slow)
