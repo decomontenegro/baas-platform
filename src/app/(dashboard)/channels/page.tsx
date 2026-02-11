@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, 
@@ -12,14 +12,26 @@ import {
   MoreVertical,
   Trash2,
   Edit,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import { Modal } from '@/components/ui/modal'
-import { mockChannels } from '@/hooks/use-channels'
 import { formatRelativeTime, formatNumber, cn } from '@/lib/utils'
 import type { Channel } from '@/types'
+
+// Real data from Clawdbot API
+interface ClawdbotChannel {
+  id: string
+  name: string
+  type: 'whatsapp' | 'telegram' | 'discord' | 'slack' | 'webchat'
+  status: 'connected' | 'disconnected' | 'configured'
+  groups?: number
+  dmPolicy?: string
+  groupPolicy?: string
+  config?: Record<string, unknown>
+}
 
 const channelIcons: Record<string, string> = {
   whatsapp: '💬',
@@ -44,8 +56,38 @@ export default function ChannelsPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [newChannel, setNewChannel] = useState({ name: '', type: 'whatsapp' })
+  const [channels, setChannels] = useState<Channel[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const channels = mockChannels
+  // Fetch real channels from Clawdbot API
+  useEffect(() => {
+    async function fetchChannels() {
+      try {
+        const res = await fetch('/api/clawdbot/channels')
+        const data = await res.json()
+        if (data.success && data.data) {
+          // Transform Clawdbot data to Channel format
+          const transformed: Channel[] = data.data.map((ch: ClawdbotChannel) => ({
+            id: ch.id,
+            name: ch.name,
+            type: ch.type === 'webchat' ? 'api' : ch.type,
+            status: ch.status === 'connected' ? 'active' : ch.status === 'disconnected' ? 'error' : 'inactive',
+            config: ch.config || {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            messagesCount: ch.groups || 0,
+            lastActivity: new Date().toISOString(),
+          }))
+          setChannels(transformed)
+        }
+      } catch (error) {
+        console.error('Error fetching channels:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchChannels()
+  }, [])
 
   const filteredChannels = channels.filter((channel) => {
     const matchesSearch = channel.name.toLowerCase().includes(search.toLowerCase())
@@ -60,9 +102,20 @@ export default function ChannelsPage() {
     setNewChannel({ name: '', type: 'whatsapp' })
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen">
+        <Header title="Channels" subtitle="Manage your communication channels" />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen">
-      <Header title="Channels" subtitle="Manage your communication channels" />
+      <Header title="Channels" subtitle="Real channels from Clawdbot" />
       
       <div className="flex-1 overflow-auto p-6">
         {/* Toolbar */}
