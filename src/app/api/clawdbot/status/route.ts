@@ -80,18 +80,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     // Get local sync status from database
     try {
-      const channelCount = await prisma.channel.count({
+      const channelCount = await prisma.Channel.count({
         where: {
-          workspace: {
+          Workspace: {
             tenantId: user.tenantId,
           },
           type: 'WHATSAPP',
         },
       });
 
-      const activeCount = await prisma.channel.count({
+      const activeCount = await prisma.Channel.count({
         where: {
-          workspace: {
+          Workspace: {
             tenantId: user.tenantId,
           },
           type: 'WHATSAPP',
@@ -99,9 +99,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
         },
       });
 
-      const lastSyncChannel = await prisma.channel.findFirst({
+      const lastSyncChannel = await prisma.Channel.findFirst({
         where: {
-          workspace: {
+          Workspace: {
             tenantId: user.tenantId,
           },
           type: 'WHATSAPP',

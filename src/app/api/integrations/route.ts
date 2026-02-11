@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user has access to workspace
-    const workspace = await prisma.workspace.findFirst({
+    const workspace = await prisma.Workspace.findFirst({
       where: {
         id: workspaceId,
         tenant: {
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user has access to workspace
-    const workspace = await prisma.workspace.findFirst({
+    const workspace = await prisma.Workspace.findFirst({
       where: {
         id: workspaceId,
         tenant: {

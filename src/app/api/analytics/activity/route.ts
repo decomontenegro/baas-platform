@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Get channel info for the events
     const channelIds = [...new Set(events.map(e => e.channelId).filter(Boolean))] as string[]
-    const channels = await prisma.channel.findMany({
+    const channels = await prisma.Channel.findMany({
       where: { id: { in: channelIds } },
       select: { id: true, name: true, type: true },
     })

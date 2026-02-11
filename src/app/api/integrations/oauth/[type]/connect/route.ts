@@ -38,7 +38,7 @@ export async function POST(
     }
 
     // Verify user has access to workspace
-    const workspace = await prisma.workspace.findFirst({
+    const workspace = await prisma.Workspace.findFirst({
       where: {
         id: workspaceId,
         tenant: {

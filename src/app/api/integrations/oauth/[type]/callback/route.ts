@@ -125,8 +125,8 @@ export async function GET(
           botId: notionData.botId,
         }
         additionalConfig = {
-          workspaceId: notionData.workspaceId,
-          workspaceName: notionData.workspaceName,
+          workspaceId: notionData.WorkspaceId,
+          workspaceName: notionData.WorkspaceName,
         }
         break
       }

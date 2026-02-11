@@ -35,7 +35,7 @@ const db = {
     findUnique: async () => null,
     upsert: async (data: unknown) => data,
   },
-  messages: {
+  Message: {
     create: async (data: unknown) => data,
   },
   analytics: {
@@ -264,7 +264,7 @@ async function handleMessageSent(event: MessageSentEvent, organizationId: string
   }, 'Message sent');
 
   // Log outgoing message
-  await db.messages.create({
+  await db.Message.create({
     data: {
       organizationId,
       clawdbotMessageId: message.id,

@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {
-      workspace: {
+      Workspace: {
         tenantId,
       },
       deletedAt: null,
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (isActive !== undefined) {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       prisma.handoffRule.findMany({
         where,
         include: {
-          workspace: {
+          Workspace: {
             select: {
               id: true,
               name: true,
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createHandoffRuleSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: data.workspaceId },
+    const workspace = await prisma.Workspace.findUnique({
+      where: { id: data.WorkspaceId },
     })
 
     if (!workspace) {
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     const rule = await prisma.handoffRule.create({
       data: {
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId,
         name: data.name,
         description: data.description,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         sortOrder: data.sortOrder,
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,

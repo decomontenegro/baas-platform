@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const tenantId = auth.tenantId!;
     
     // 3. Validate messages
-    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+    if (!body.Message || !Array.isArray(body.Message) || body.Message.length === 0) {
       return NextResponse.json(
         { error: 'messages is required and must be a non-empty array' },
         { status: 400 }
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
       {
         tenantId,
         agentId,
-        messages: body.messages as Message[],
-        channel: body.channel,
+        messages: body.Message as Message[],
+        channel: body.Channel,
         groupId: body.group_id,
         sessionId: body.session_id
       },

@@ -14,13 +14,13 @@ export async function GET(request: NextRequest) {
     await requireAuth(request)
     
     // Get channels from database
-    const channels = await prisma.channel.findMany({
+    const channels = await prisma.Channel.findMany({
       where: {
         type: ChannelType.WHATSAPP,
         deletedAt: null,
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             name: true,
             tenant: {
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
         model: config.model as string || 'default',
         enabled: channel.isActive && (config.enabled !== false),
         status: channel.status,
-        workspace: channel.workspace?.name,
-        tenant: channel.workspace?.tenant?.name,
+        workspace: channel.Workspace?.name,
+        tenant: channel.Workspace?.tenant?.name,
       }
     })
     
@@ -82,11 +82,11 @@ export async function PATCH(request: NextRequest) {
     let channel = null
     
     if (channelId) {
-      channel = await prisma.channel.findUnique({
+      channel = await prisma.Channel.findUnique({
         where: { id: channelId }
       })
     } else if (groupId) {
-      channel = await prisma.channel.findFirst({
+      channel = await prisma.Channel.findFirst({
         where: {
           type: ChannelType.WHATSAPP,
           config: {
@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest) {
     }
     
     // Update in database
-    const updated = await prisma.channel.update({
+    const updated = await prisma.Channel.update({
       where: { id: channel.id },
       data: {
         config: newConfig,

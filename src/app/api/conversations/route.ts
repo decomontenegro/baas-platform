@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (channelId) {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (assignedToId) {
-      where.assignedToId = assignedToId
+      where.UserId = assignedToId
     }
 
     if (search) {
@@ -96,16 +96,16 @@ export async function GET(request: NextRequest) {
       prisma.conversation.findMany({
         where,
         include: {
-          workspace: {
+          Workspace: {
             select: { id: true, name: true },
           },
-          channel: {
+          Channel: {
             select: { id: true, name: true, type: true },
           },
-          assignedTo: {
+          User: {
             select: { id: true, name: true, email: true, image: true },
           },
-          messages: {
+          Message: {
             take: 1,
             orderBy: { createdAt: 'desc' },
             select: {
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
             },
           },
           _count: {
-            select: { messages: true, notes: true },
+            select: { Message: true, notes: true },
           },
         },
         orderBy,
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     // Transform to include last message preview
     const conversationsWithPreview = conversations.map((conv) => ({
       ...conv,
-      lastMessage: conv.messages[0] || null,
+      lastMessage: conv.Message[0] || null,
       messages: undefined, // Remove full messages array
     }))
 
@@ -173,8 +173,8 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createConversationSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: data.workspaceId },
+    const workspace = await prisma.Workspace.findUnique({
+      where: { id: data.WorkspaceId },
     })
 
     if (!workspace) {
@@ -187,11 +187,11 @@ export async function POST(request: NextRequest) {
 
     // Verify channel if provided
     if (data.channelId) {
-      const channel = await prisma.channel.findUnique({
+      const channel = await prisma.Channel.findUnique({
         where: { id: data.channelId },
       })
 
-      if (!channel || channel.workspaceId !== data.workspaceId) {
+      if (!channel || channel.WorkspaceId !== data.WorkspaceId) {
         throw new NotFoundError('Channel')
       }
     }
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     // Check if conversation already exists for this contact
     const existing = await prisma.conversation.findFirst({
       where: {
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId || null,
         contactId: data.contactId,
         deletedAt: null,
@@ -211,9 +211,9 @@ export async function POST(request: NextRequest) {
       const conversation = await prisma.conversation.findUnique({
         where: { id: existing.id },
         include: {
-          workspace: { select: { id: true, name: true } },
-          channel: { select: { id: true, name: true, type: true } },
-          assignedTo: { select: { id: true, name: true, email: true, image: true } },
+          Workspace: { select: { id: true, name: true } },
+          Channel: { select: { id: true, name: true, type: true } },
+          User: { select: { id: true, name: true, email: true, image: true } },
         },
       })
       return apiResponse({ conversation, existed: true }, 200)
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
     const conversation = await prisma.conversation.create({
       data: {
         tenantId,
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId,
         contactId: data.contactId,
         contactName: data.contactName,
@@ -233,8 +233,8 @@ export async function POST(request: NextRequest) {
         tags: data.tags || [],
       },
       include: {
-        workspace: { select: { id: true, name: true } },
-        channel: { select: { id: true, name: true, type: true } },
+        Workspace: { select: { id: true, name: true } },
+        Channel: { select: { id: true, name: true, type: true } },
       },
     })
 

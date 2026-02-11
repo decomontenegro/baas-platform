@@ -25,7 +25,7 @@ export async function GET(
     const integration = await prisma.integration.findFirst({
       where: {
         id,
-        workspace: {
+        Workspace: {
           tenant: {
             memberships: {
               some: { userId: session.user.id, status: 'ACTIVE' },
@@ -76,7 +76,7 @@ export async function PATCH(
     const integration = await prisma.integration.findFirst({
       where: {
         id,
-        workspace: {
+        Workspace: {
           tenant: {
             memberships: {
               some: { userId: session.user.id, status: 'ACTIVE' },
@@ -137,7 +137,7 @@ export async function DELETE(
     const integration = await prisma.integration.findFirst({
       where: {
         id,
-        workspace: {
+        Workspace: {
           tenant: {
             memberships: {
               some: { userId: session.user.id, status: 'ACTIVE' },

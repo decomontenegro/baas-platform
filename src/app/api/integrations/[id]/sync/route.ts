@@ -25,7 +25,7 @@ export async function POST(
     const integration = await prisma.integration.findFirst({
       where: {
         id,
-        workspace: {
+        Workspace: {
           tenant: {
             memberships: {
               some: { userId: session.user.id, status: 'ACTIVE' },

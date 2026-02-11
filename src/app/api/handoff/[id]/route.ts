@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const handoffRequest = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (handoffRequest.workspace.tenantId !== tenantId) {
+    if (handoffRequest.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 
@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 
@@ -99,7 +99,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         metadata: data.metadata,
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -134,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 

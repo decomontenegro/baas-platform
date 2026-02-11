@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -47,12 +47,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 
     // Check if already assigned to someone else
-    if (existing.status !== 'PENDING' && existing.assignedTo && existing.assignedTo !== data.assignTo) {
+    if (existing.status !== 'PENDING' && existing.User && existing.User !== data.assignTo) {
       throw new BadRequestError('Handoff is already assigned to another agent')
     }
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         status: 'ASSIGNED',
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -120,7 +120,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -130,7 +130,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 
@@ -143,7 +143,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         status: 'PENDING',
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,

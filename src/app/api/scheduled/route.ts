@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (channelId) {
@@ -122,8 +122,8 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createScheduledMessageSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: data.workspaceId },
+    const workspace = await prisma.Workspace.findUnique({
+      where: { id: data.WorkspaceId },
     })
 
     if (!workspace) {
@@ -135,11 +135,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify channel belongs to workspace
-    const channel = await prisma.channel.findUnique({
+    const channel = await prisma.Channel.findUnique({
       where: { id: data.channelId },
     })
 
-    if (!channel || channel.workspaceId !== data.workspaceId) {
+    if (!channel || channel.WorkspaceId !== data.WorkspaceId) {
       throw new NotFoundError('Channel')
     }
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     const message = await prisma.scheduledMessage.create({
       data: {
         tenantId,
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId,
         contactId: data.contactId,
         conversationId: data.conversationId,

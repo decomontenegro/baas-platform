@@ -21,10 +21,10 @@ async function requireAuth() {
 
 // Helper to get and validate channel access
 async function getChannelWithAccess(channelId: string, tenantId: string) {
-  const channel = await prisma.channel.findUnique({
+  const channel = await prisma.Channel.findUnique({
     where: { id: channelId },
     include: {
-      workspace: {
+      Workspace: {
         select: {
           id: true,
           name: true,
@@ -38,7 +38,7 @@ async function getChannelWithAccess(channelId: string, tenantId: string) {
     throw new NotFoundError('Channel')
   }
 
-  if (channel.workspace.tenantId !== tenantId) {
+  if (channel.Workspace.tenantId !== tenantId) {
     throw new ForbiddenError('Access denied to this channel')
   }
 
@@ -59,15 +59,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const channel = await getChannelWithAccess(id, tenantId)
 
     return apiResponse({
-      channel: {
+      Channel: {
         id: channel.id,
         name: channel.name,
         type: channel.type,
         status: channel.status,
-        workspaceId: channel.workspaceId,
-        workspace: {
-          id: channel.workspace.id,
-          name: channel.workspace.name,
+        workspaceId: channel.WorkspaceId,
+        Workspace: {
+          id: channel.Workspace.id,
+          name: channel.Workspace.name,
         },
         config: channel.config,
         metadata: channel.metadata,
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const data = await parseBody(request, updateChannelSchema)
 
-    const channel = await prisma.channel.update({
+    const channel = await prisma.Channel.update({
       where: { id: existingChannel.id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -114,7 +114,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }),
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -142,7 +142,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     await getChannelWithAccess(id, tenantId)
 
-    await prisma.channel.delete({
+    await prisma.Channel.delete({
       where: { id },
     })
 

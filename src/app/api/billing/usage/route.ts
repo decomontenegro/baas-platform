@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
           start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
           end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
         },
-        messages: {
+        Message: {
           sent: currentUsage.messagesSent,
           received: currentUsage.messagesReceived,
           total: currentUsage.totalMessages,
-          limit: summary.messages.limit,
-          percentage: summary.messages.percentage,
+          limit: summary.Message.limit,
+          percentage: summary.Message.percentage,
         },
         tokens: {
           input: currentUsage.tokensInput,

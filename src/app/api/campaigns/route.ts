@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (channelId) {
@@ -121,9 +121,9 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createCampaignSchema)
 
     // Verify workspace belongs to tenant if provided
-    if (data.workspaceId) {
-      const workspace = await prisma.workspace.findUnique({
-        where: { id: data.workspaceId },
+    if (data.WorkspaceId) {
+      const workspace = await prisma.Workspace.findUnique({
+        where: { id: data.WorkspaceId },
       })
 
       if (!workspace) {
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     // Verify channel belongs to workspace if provided
     if (data.channelId) {
-      const channel = await prisma.channel.findUnique({
+      const channel = await prisma.Channel.findUnique({
         where: { id: data.channelId },
       })
 
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         throw new NotFoundError('Channel')
       }
 
-      if (data.workspaceId && channel.workspaceId !== data.workspaceId) {
+      if (data.WorkspaceId && channel.WorkspaceId !== data.WorkspaceId) {
         throw new ForbiddenError('Channel does not belong to this workspace')
       }
     }
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     const campaign = await prisma.campaign.create({
       data: {
         tenantId,
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId,
         name: data.name,
         description: data.description,

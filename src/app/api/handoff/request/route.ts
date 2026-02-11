@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createHandoffRequestSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: data.workspaceId },
+    const workspace = await prisma.Workspace.findUnique({
+      where: { id: data.WorkspaceId },
       include: { handoffSettings: true },
     })
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Create the handoff request
     const handoffRequest = await prisma.handoffRequest.create({
       data: {
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         channelId: data.channelId,
         conversationId: data.conversationId,
         customerName: data.customerName,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         slaDeadline,
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,

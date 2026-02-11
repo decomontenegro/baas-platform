@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRequest.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff request')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this handoff request')
     }
 

@@ -32,10 +32,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Get channel and verify access
-    const channel = await prisma.channel.findUnique({
+    const channel = await prisma.Channel.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Channel')
     }
 
-    if (channel.workspace.tenantId !== tenantId) {
+    if (channel.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this channel')
     }
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Build mock response
     const response = {
       success: true,
-      channel: {
+      Channel: {
         id: channel.id,
         name: channel.name,
         type: channel.type,
@@ -95,8 +95,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           timestamp: new Date(Date.now() + processingTime).toISOString(),
         },
         metadata: {
-          workspaceId: channel.workspace.id,
-          workspaceName: channel.workspace.name,
+          workspaceId: channel.Workspace.id,
+          workspaceName: channel.Workspace.name,
           channelConfig: Object.keys(channel.config as object || {}).length > 0 
             ? 'configured' 
             : 'default',

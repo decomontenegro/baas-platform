@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {
-      workspace: {
+      Workspace: {
         tenantId,
       },
       deletedAt: null,
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (status) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (assignedTo) {
-      where.assignedTo = assignedTo
+      where.User = assignedTo
     }
 
     if (channelId) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       prisma.handoffRequest.findMany({
         where,
         include: {
-          workspace: {
+          Workspace: {
             select: {
               id: true,
               name: true,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       prisma.handoffRequest.groupBy({
         by: ['status'],
         where: {
-          workspace: { tenantId },
+          Workspace: { tenantId },
           deletedAt: null,
         },
         _count: true,

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const rule = await prisma.handoffRule.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff rule')
     }
 
-    if (rule.workspace.tenantId !== tenantId) {
+    if (rule.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this rule')
     }
 
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRule.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff rule')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this rule')
     }
 
@@ -101,7 +101,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         sortOrder: data.sortOrder,
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,
@@ -132,7 +132,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.handoffRule.findUnique({
       where: { id },
       include: {
-        workspace: {
+        Workspace: {
           select: { tenantId: true },
         },
       },
@@ -142,7 +142,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError('Handoff rule')
     }
 
-    if (existing.workspace.tenantId !== tenantId) {
+    if (existing.Workspace.tenantId !== tenantId) {
       throw new ForbiddenError('Access denied to this rule')
     }
 

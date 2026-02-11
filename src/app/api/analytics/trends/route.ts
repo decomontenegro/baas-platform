@@ -50,10 +50,10 @@ export async function GET(request: NextRequest) {
 
     // Validate channelId if provided
     if (channelId) {
-      const channel = await prisma.channel.findFirst({
+      const channel = await prisma.Channel.findFirst({
         where: {
           id: channelId,
-          workspace: {
+          Workspace: {
             tenantId,
             deletedAt: null,
           },
@@ -108,11 +108,11 @@ export async function GET(request: NextRequest) {
     // Find peak hour
     let peakHour = null
     if (peakHours.length > 0) {
-      const maxHour = peakHours.reduce((max, h) => h.messages > max.messages ? h : max)
+      const maxHour = peakHours.reduce((max, h) => h.Message > max.Message ? h : max)
       peakHour = {
         hour: maxHour.hour,
         label: maxHour.label,
-        messages: maxHour.messages,
+        messages: maxHour.Message,
       }
     }
 

@@ -30,14 +30,14 @@ export async function POST(request: NextRequest) {
     // Get or create default workspace
     let workspace = null
     if (workspaceId) {
-      workspace = await prisma.workspace.findUnique({
+      workspace = await prisma.Workspace.findUnique({
         where: { id: workspaceId }
       })
     }
     
     if (!workspace) {
       // Try to find default workspace
-      workspace = await prisma.workspace.findFirst({
+      workspace = await prisma.Workspace.findFirst({
         where: { name: 'Clawdbot Default' }
       })
       
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           return errorResponse('No tenant found. Create a tenant first.', 400)
         }
         
-        workspace = await prisma.workspace.create({
+        workspace = await prisma.Workspace.create({
           data: {
             name: 'Clawdbot Default',
             tenantId: tenant.id,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         const externalId = group.id
         
         // Find existing channel by externalId
-        const existing = await prisma.channel.findFirst({
+        const existing = await prisma.Channel.findFirst({
           where: {
             type: ChannelType.WHATSAPP,
             config: {
@@ -97,13 +97,13 @@ export async function POST(request: NextRequest) {
         }
         
         if (existing) {
-          await prisma.channel.update({
+          await prisma.Channel.update({
             where: { id: existing.id },
             data: channelData
           })
           results.updated++
         } else {
-          await prisma.channel.create({
+          await prisma.Channel.create({
             data: channelData
           })
           results.created++

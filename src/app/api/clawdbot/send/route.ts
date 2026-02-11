@@ -83,10 +83,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     // Verify the target belongs to user's tenant (if it's a tracked channel)
     const isGroupTarget = body.target.includes('@g.us');
     if (isGroupTarget) {
-      const channel = await prisma.channel.findFirst({
+      const channel = await prisma.Channel.findFirst({
         where: {
           externalId: body.target,
-          workspace: {
+          Workspace: {
             tenantId: user.tenantId,
           },
         },

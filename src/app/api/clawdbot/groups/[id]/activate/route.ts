@@ -99,7 +99,7 @@ export async function POST(
 
     // Update or create channel in local database
     // First, find the workspace for this tenant
-    const workspace = await prisma.workspace.findFirst({
+    const workspace = await prisma.Workspace.findFirst({
       where: {
         tenantId: user.tenantId,
         isActive: true,
@@ -111,7 +111,7 @@ export async function POST(
       const groups = await client.getGroups();
       const group = groups.find(g => g.id === groupId);
 
-      await prisma.channel.upsert({
+      await prisma.Channel.upsert({
         where: {
           workspaceId_externalId: {
             workspaceId: workspace.id,
@@ -220,7 +220,7 @@ export async function DELETE(
     });
 
     // Update local database
-    const workspace = await prisma.workspace.findFirst({
+    const workspace = await prisma.Workspace.findFirst({
       where: {
         tenantId: user.tenantId,
         isActive: true,
@@ -228,7 +228,7 @@ export async function DELETE(
     });
 
     if (workspace) {
-      await prisma.channel.updateMany({
+      await prisma.Channel.updateMany({
         where: {
           workspaceId: workspace.id,
           externalId: groupId,

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     const [workspaces, total] = await Promise.all([
-      prisma.workspace.findMany({
+      prisma.Workspace.findMany({
         where: { tenantId },
         include: {
           _count: {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.workspace.count({ where: { tenantId } }),
+      prisma.Workspace.count({ where: { tenantId } }),
     ])
 
     return apiResponse({
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const data = await parseBody(request, createWorkspaceSchema)
 
-    const workspace = await prisma.workspace.create({
+    const workspace = await prisma.Workspace.create({
       data: {
         name: data.name,
         description: data.description,

@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {
-      workspace: {
+      Workspace: {
         tenantId,
       },
     }
 
     if (workspaceId) {
-      where.workspaceId = workspaceId
+      where.WorkspaceId = workspaceId
     }
 
     if (type) {
@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
     }
 
     const [channels, total] = await Promise.all([
-      prisma.channel.findMany({
+      prisma.Channel.findMany({
         where,
         include: {
-          workspace: {
+          Workspace: {
             select: {
               id: true,
               name: true,
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.channel.count({ where }),
+      prisma.Channel.count({ where }),
     ])
 
     return apiResponse({
@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
     const data = await parseBody(request, createChannelSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: data.workspaceId },
+    const workspace = await prisma.Workspace.findUnique({
+      where: { id: data.WorkspaceId },
     })
 
     if (!workspace) {
@@ -110,16 +110,16 @@ export async function POST(request: NextRequest) {
       throw new ForbiddenError('Access denied to this workspace')
     }
 
-    const channel = await prisma.channel.create({
+    const channel = await prisma.Channel.create({
       data: {
         name: data.name,
         type: data.type,
-        workspaceId: data.workspaceId,
+        workspaceId: data.WorkspaceId,
         config: data.config || {},
         metadata: data.metadata || {},
       },
       include: {
-        workspace: {
+        Workspace: {
           select: {
             id: true,
             name: true,

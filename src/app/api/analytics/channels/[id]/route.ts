@@ -51,10 +51,10 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
 
     // Verify channel belongs to this tenant
-    const channel = await prisma.channel.findFirst({
+    const channel = await prisma.Channel.findFirst({
       where: {
         id: channelId,
-        workspace: {
+        Workspace: {
           tenantId: membership.tenantId,
           deletedAt: null,
         },
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const response = {
       organizationId: orgId,
       tenantId: membership.tenantId,
-      channel: {
+      Channel: {
         id: channel.id,
         name: channel.name,
         type: channel.type,
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       },
       period: { start, end },
       metrics: {
-        messages: {
+        Message: {
           total: totalMessages,
           incoming: totals.messagesIn,
           outgoing: totals.messagesOut,

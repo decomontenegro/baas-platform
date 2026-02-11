@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const { workspaceId } = parseQuery(request, settingsQuerySchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
+    const workspace = await prisma.Workspace.findUnique({
       where: { id: workspaceId },
     })
 
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     const data = await parseBody(request, updateHandoffSettingsSchema)
 
     // Verify workspace belongs to tenant
-    const workspace = await prisma.workspace.findUnique({
+    const workspace = await prisma.Workspace.findUnique({
       where: { id: workspaceId },
     })
 

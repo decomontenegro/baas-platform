@@ -20,9 +20,9 @@ async function getConversation(id: string, tenantId: string) {
   const conversation = await prisma.conversation.findUnique({
     where: { id },
     include: {
-      workspace: { select: { id: true, name: true } },
-      channel: { select: { id: true, name: true, type: true } },
-      assignedTo: { select: { id: true, name: true, email: true, image: true } },
+      Workspace: { select: { id: true, name: true } },
+      Channel: { select: { id: true, name: true, type: true } },
+      User: { select: { id: true, name: true, email: true, image: true } },
       events: {
         orderBy: { createdAt: 'asc' },
         include: {
@@ -37,7 +37,7 @@ async function getConversation(id: string, tenantId: string) {
         },
       },
       _count: {
-        select: { messages: true },
+        select: { Message: true },
       },
     },
   })
@@ -126,7 +126,7 @@ export async function PATCH(
 
     // Track status change for event
     const statusChanged = data.status && data.status !== existing.status
-    const assigneeChanged = data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId
+    const assigneeChanged = data.UserId !== undefined && data.UserId !== existing.UserId
 
     // Build update data
     const updateData: any = {}
@@ -151,17 +151,17 @@ export async function PATCH(
       updateData.tags = data.tags
     }
     
-    if (data.assignedToId !== undefined) {
-      updateData.assignedToId = data.assignedToId
+    if (data.UserId !== undefined) {
+      updateData.UserId = data.UserId
     }
 
     const conversation = await prisma.conversation.update({
       where: { id },
       data: updateData,
       include: {
-        workspace: { select: { id: true, name: true } },
-        channel: { select: { id: true, name: true, type: true } },
-        assignedTo: { select: { id: true, name: true, email: true, image: true } },
+        Workspace: { select: { id: true, name: true } },
+        Channel: { select: { id: true, name: true, type: true } },
+        User: { select: { id: true, name: true, email: true, image: true } },
       },
     })
 
@@ -184,11 +184,11 @@ export async function PATCH(
       await prisma.conversationEvent.create({
         data: {
           conversationId: id,
-          type: data.assignedToId ? 'ASSIGNED' : 'UNASSIGNED',
+          type: data.UserId ? 'ASSIGNED' : 'UNASSIGNED',
           actorId: userId,
           data: {
-            from: existing.assignedToId,
-            to: data.assignedToId,
+            from: existing.UserId,
+            to: data.UserId,
           },
         },
       })

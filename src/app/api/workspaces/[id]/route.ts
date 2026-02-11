@@ -21,7 +21,7 @@ async function requireAuth() {
 
 // Helper to get and validate workspace access
 async function getWorkspaceWithAccess(workspaceId: string, tenantId: string) {
-  const workspace = await prisma.workspace.findUnique({
+  const workspace = await prisma.Workspace.findUnique({
     where: { id: workspaceId },
     include: {
       _count: {
@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     
     const data = await parseBody(request, updateWorkspaceSchema)
 
-    const workspace = await prisma.workspace.update({
+    const workspace = await prisma.Workspace.update({
       where: { id: existingWorkspace.id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -117,7 +117,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     await getWorkspaceWithAccess(id, tenantId)
 
-    await prisma.workspace.delete({
+    await prisma.Workspace.delete({
       where: { id },
     })
 

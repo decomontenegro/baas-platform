@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
         byStatus: conversationsByStatusMap,
         avgMessagesPerConversation
       },
-      messages: {
+      Message: {
         total: totalMessages,
         byRole: {
           user: messagesByRoleMap['USER'] || 0,
