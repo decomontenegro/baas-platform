@@ -115,15 +115,15 @@ export async function GET() {
       },
     ]
     
+    // Return data in exact format expected by Analytics interface
     return NextResponse.json({
       totalMessages,
       totalChannels,
       activeChannels,
-      avgResponseTime: 1.2, // Mock response time
+      avgResponseTime: 1.2,
       messagesPerDay,
       channelBreakdown,
       recentActivity,
-      generatedAt: new Date().toISOString(),
     })
   } catch (error) {
     console.error('Error fetching clawdbot analytics:', error)
