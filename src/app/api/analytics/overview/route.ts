@@ -1,54 +1,75 @@
 import { NextRequest } from 'next/server'
-import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
 
 export const dynamic = 'force-dynamic'
 
-const CLAWDBOT_CONFIG_PATH = process.env.CLAWDBOT_CONFIG_PATH || '/root/.clawdbot/clawdbot.json'
-
 /**
  * GET /api/analytics/overview
- * Returns analytics overview from Clawdbot
+ * Returns analytics overview metrics
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const baseUrl = request.nextUrl.origin
+  const searchParams = request.nextUrl.searchParams
+  const start = searchParams.get('start') || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const end = searchParams.get('end') || new Date().toISOString()
+  
   try {
-    let channelCount = 1
-    let groupCount = 0
+    // Get conversations count from Clawdbot
+    const res = await fetch(`${baseUrl}/api/clawdbot/conversations`)
+    const data = await res.json()
     
-    if (existsSync(CLAWDBOT_CONFIG_PATH)) {
-      const configRaw = await readFile(CLAWDBOT_CONFIG_PATH, 'utf-8')
-      const config = JSON.parse(configRaw)
-      groupCount = config.channels?.whatsapp?.groups ? 
-        Object.keys(config.channels.whatsapp.groups).length : 0
-    }
+    const totalConversations = data.success ? data.data?.length || 0 : 0
     
     return Response.json({
-      success: true,
-      data: {
-        totalConversations: groupCount,
-        activeConversations: groupCount,
-        totalMessages: 0,
-        avgResponseTime: 0,
+      period: { start, end },
+      messages: {
+        total: 0,
+        incoming: 0,
+        outgoing: 0,
+        growth: 0
+      },
+      conversations: {
+        started: totalConversations,
+        ended: 0,
+        ongoing: totalConversations
+      },
+      channels: {
+        total: 2,
+        active: 1,
+        byType: { whatsapp: totalConversations, webchat: 0 }
+      },
+      performance: {
+        avgResponseTimeMs: null,
+        p50ResponseTimeMs: null,
+        p95ResponseTimeMs: null,
+        p99ResponseTimeMs: null,
         resolutionRate: 0,
-        channelsActive: channelCount,
-        period: {
-          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          end: new Date().toISOString()
-        }
-      }
+        errorRate: 0
+      },
+      costs: {
+        total: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        currency: 'USD',
+        perMessage: null
+      },
+      satisfaction: {
+        positive: 0,
+        negative: 0,
+        score: null
+      },
+      uniqueUsers: totalConversations
     })
   } catch (error) {
-    console.error('Error reading analytics:', error)
+    console.error('Analytics overview error:', error)
     return Response.json({
-      success: true,
-      data: {
-        totalConversations: 0,
-        activeConversations: 0,
-        totalMessages: 0,
-        avgResponseTime: 0,
-        resolutionRate: 0,
-        channelsActive: 0
-      }
+      period: { start, end },
+      messages: { total: 0, incoming: 0, outgoing: 0, growth: 0 },
+      conversations: { started: 0, ended: 0, ongoing: 0 },
+      channels: { total: 0, active: 0, byType: {} },
+      performance: { avgResponseTimeMs: null, p50ResponseTimeMs: null, p95ResponseTimeMs: null, p99ResponseTimeMs: null, resolutionRate: 0, errorRate: 0 },
+      costs: { total: 0, tokensIn: 0, tokensOut: 0, currency: 'USD', perMessage: null },
+      satisfaction: { positive: 0, negative: 0, score: null },
+      uniqueUsers: 0
     })
   }
 }
