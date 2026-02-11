@@ -97,7 +97,7 @@ const navigation: NavGroup[] = [
     title: "Equipe",
     items: [
       { title: "Membros", href: "/team", icon: Users },
-      { title: "API Keys", href: "/dashboard/api-keys", icon: Key },
+      { title: "API Keys", href: "/api-keys", icon: Key },
     ],
   },
   {
