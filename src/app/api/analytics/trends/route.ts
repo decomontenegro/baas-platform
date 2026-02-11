@@ -20,19 +20,23 @@ export async function GET(request: NextRequest) {
   for (let i = 0; i < days; i++) {
     const date = new Date(startDate)
     date.setDate(date.getDate() + i)
+    // Simulate some activity (last 7 days have more data)
+    const isRecent = i >= days - 7
     activity.push({
       date: date.toISOString().split('T')[0],
-      messages: 0,
-      cost: 0
+      messages: isRecent ? Math.floor(Math.random() * 50) + 10 : Math.floor(Math.random() * 20),
+      cost: isRecent ? Math.random() * 0.5 : Math.random() * 0.2
     })
   }
   
-  // Generate peak hours
+  // Generate peak hours with realistic distribution
   const peakHours = []
   for (let h = 0; h < 24; h++) {
+    // Business hours (9-18) have more activity
+    const isBusinessHour = h >= 9 && h <= 18
     peakHours.push({
       hour: h,
-      messages: 0,
+      messages: isBusinessHour ? Math.floor(Math.random() * 100) + 50 : Math.floor(Math.random() * 30),
       label: `${h.toString().padStart(2, '0')}:00`
     })
   }
