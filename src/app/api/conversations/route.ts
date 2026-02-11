@@ -35,15 +35,19 @@ export async function GET(request: NextRequest) {
       }))
       
       // Return in format expected by useConversationsInfinite hook
-      // Note: total/active/etc must be at root level, not nested in meta
+      // Hook expects pagination.total, not just total
       const meta = data.meta || { total: conversations.length, active: conversations.length, handoff: 0, unread: 0 }
       return Response.json({
         conversations: conversations,
-        total: meta.total,
+        pagination: {
+          total: meta.total,
+          page: 1,
+          limit: 100,
+          totalPages: Math.ceil(meta.total / 100)
+        },
         active: meta.active,
         handoff: meta.handoff,
-        unread: meta.unread,
-        pageParams: { page: 1, limit: 100 }
+        unread: meta.unread
       })
     }
   } catch (error) {
@@ -52,10 +56,14 @@ export async function GET(request: NextRequest) {
   
   return Response.json({
     conversations: [],
-    total: 0,
+    pagination: {
+      total: 0,
+      page: 1,
+      limit: 100,
+      totalPages: 0
+    },
     active: 0,
     handoff: 0,
-    unread: 0,
-    pageParams: { page: 1, limit: 100 }
+    unread: 0
   })
 }
