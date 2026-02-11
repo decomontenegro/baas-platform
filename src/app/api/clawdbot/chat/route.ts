@@ -58,12 +58,18 @@ async function sendViaSession(message: string, sessionId: string): Promise<strin
       env: { ...process.env, HOME: '/root' }
     })
     
-    // Parse JSON response
+    // Parse JSON response from clawdbot agent
     try {
       const jsonMatch = result.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0])
-        // Agent returns response in different fields
+        
+        // clawdbot agent returns: { result: { payloads: [{ text: "..." }] } }
+        if (data.result?.payloads?.[0]?.text) {
+          return data.result.payloads[0].text
+        }
+        
+        // Fallback to other common fields
         return data.reply || data.response || data.message || data.text || data.content || result.trim()
       }
     } catch {
