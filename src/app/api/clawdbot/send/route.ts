@@ -87,7 +87,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         where: {
           externalId: body.target,
           workspace: {
-            tenantId: user.tenantId,
+            tenantId: user.TenantId,
           },
         },
       });

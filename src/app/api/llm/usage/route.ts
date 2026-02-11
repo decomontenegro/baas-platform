@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     if (!tenantId) {
       return NextResponse.json(
         { success: false, error: 'No tenant associated with user' },

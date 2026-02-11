@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Get user's tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
     if (!user?.tenantId) {
@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch logs and count in parallel
     const [logs, total] = await Promise.all([
-      getAuditLog(user.tenantId, filters),
-      countAuditLogs(user.tenantId, {
+      getAuditLog(user.TenantId, filters),
+      countAuditLogs(user.TenantId, {
         userId,
         action,
         resource,

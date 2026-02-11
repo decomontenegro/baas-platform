@@ -101,7 +101,7 @@ export async function POST(
     // First, find the workspace for this tenant
     const workspace = await prisma.workspace.findFirst({
       where: {
-        tenantId: user.tenantId,
+        tenantId: user.TenantId,
         isActive: true,
       },
     });
@@ -222,7 +222,7 @@ export async function DELETE(
     // Update local database
     const workspace = await prisma.workspace.findFirst({
       where: {
-        tenantId: user.tenantId,
+        tenantId: user.TenantId,
         isActive: true,
       },
     });

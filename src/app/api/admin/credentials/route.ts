@@ -102,10 +102,10 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
-    if (!user?.tenantId || !user.tenant) {
+    if (!user?.tenantId || !user.Tenant) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const pool = getCredentialPool(user.tenant.settings)
+    const pool = getCredentialPool(user.Tenant.settings)
     
     let credentials = pool.credentials.map((cred: Credential) => ({
       ...cred,
@@ -155,10 +155,10 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
-    if (!user?.tenantId || !user.tenant) {
+    if (!user?.tenantId || !user.Tenant) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, type, value, metadata } = validation.data
-    const pool = getCredentialPool(user.tenant.settings)
+    const pool = getCredentialPool(user.Tenant.settings)
 
     // Check for duplicate names
     if (pool.credentials.some((c: Credential) => c.name === name)) {
@@ -199,9 +199,9 @@ export async function POST(request: NextRequest) {
     pool.version += 1
 
     // Update tenant settings
-    const currentSettings = (user.tenant.settings as Record<string, any>) || {}
+    const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.tenantId },
+      where: { id: user.TenantId },
       data: {
         settings: {
           ...currentSettings,
@@ -239,10 +239,10 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
-    if (!user?.tenantId || !user.tenant) {
+    if (!user?.tenantId || !user.Tenant) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
@@ -257,7 +257,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { id, isActive } = validation.data
-    const pool = getCredentialPool(user.tenant.settings)
+    const pool = getCredentialPool(user.Tenant.settings)
 
     const credentialIndex = pool.credentials.findIndex((c: Credential) => c.id === id)
     if (credentialIndex === -1) {
@@ -275,9 +275,9 @@ export async function PATCH(request: NextRequest) {
     pool.version += 1
 
     // Update tenant settings
-    const currentSettings = (user.tenant.settings as Record<string, any>) || {}
+    const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.tenantId },
+      where: { id: user.TenantId },
       data: {
         settings: {
           ...currentSettings,
@@ -317,10 +317,10 @@ export async function DELETE(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
-    if (!user?.tenantId || !user.tenant) {
+    if (!user?.tenantId || !user.Tenant) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
@@ -334,7 +334,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const pool = getCredentialPool(user.tenant.settings)
+    const pool = getCredentialPool(user.Tenant.settings)
 
     const credentialIndex = pool.credentials.findIndex((c: Credential) => c.id === id)
     if (credentialIndex === -1) {
@@ -349,9 +349,9 @@ export async function DELETE(request: NextRequest) {
     pool.version += 1
 
     // Update tenant settings
-    const currentSettings = (user.tenant.settings as Record<string, any>) || {}
+    const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.tenantId },
+      where: { id: user.TenantId },
       data: {
         settings: {
           ...currentSettings,

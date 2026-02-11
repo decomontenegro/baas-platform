@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
     // Get user's tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
     if (!user?.tenantId) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
-    const tenantId = user.tenantId
+    const tenantId = user.TenantId
     const { searchParams } = new URL(request.url)
     const botId = searchParams.get('botId')
     const period = searchParams.get('period') || '7d'

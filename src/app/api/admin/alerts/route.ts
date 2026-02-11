@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: { include: { adminAgent: true } } }
+      include: { Tenant: { include: { adminAgent: true } } }
     })
 
     if (!user?.tenant?.adminAgent) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     const where = {
-      adminAgentId: user.tenant.adminAgent.id,
+      adminAgentId: user.Tenant.adminAgent.id,
       ...(status !== 'all' && { status: status as any })
     }
 
@@ -76,7 +76,7 @@ export async function PATCH(request: NextRequest) {
 
     const alert = await prisma.adminAlert.findUnique({
       where: { id: alertId },
-      include: { adminAgent: { include: { tenant: true } } }
+      include: { adminAgent: { include: { Tenant: true } } }
     })
 
     if (!alert) {

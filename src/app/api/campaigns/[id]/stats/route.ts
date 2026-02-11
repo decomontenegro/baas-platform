@@ -21,7 +21,7 @@ export async function GET(
 ) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     const { id } = await params
 
     if (!tenantId) {

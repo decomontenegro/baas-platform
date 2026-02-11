@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Check all access points
-    const accessPoints = await checkAllAccessPoints(user.tenantId)
-    const emergencyStatus = await isEmergencyAccessNeeded(user.tenantId)
+    const accessPoints = await checkAllAccessPoints(user.TenantId)
+    const emergencyStatus = await isEmergencyAccessNeeded(user.TenantId)
 
     return NextResponse.json({
       accessPoints,

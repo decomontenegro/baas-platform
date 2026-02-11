@@ -24,7 +24,7 @@ const settingsQuerySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')

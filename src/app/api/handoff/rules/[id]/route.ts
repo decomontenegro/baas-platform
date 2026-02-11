@@ -23,7 +23,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     const { id } = await params
 
     if (!tenantId) {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     const { id } = await params
 
     if (!tenantId) {
@@ -120,7 +120,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     const userId = session.user.id
     const { id } = await params
 

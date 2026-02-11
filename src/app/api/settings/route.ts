@@ -66,12 +66,12 @@ export async function GET(_request: NextRequest) {
     }
 
     // Merge tenant settings with defaults
-    const tenantSettings = (user.tenant?.settings as Partial<Settings>) || {}
+    const tenantSettings = (user.Tenant?.settings as Partial<Settings>) || {}
     const mergedSettings: Settings = {
       profile: {
         firstName: user.name?.split(' ')[0] || tenantSettings.profile?.firstName || '',
         lastName: user.name?.split(' ').slice(1).join(' ') || tenantSettings.profile?.lastName || '',
-        company: user.tenant?.name || tenantSettings.profile?.company || '',
+        company: user.Tenant?.name || tenantSettings.profile?.company || '',
         avatar: user.image || tenantSettings.profile?.avatar || null,
       },
       notifications: {
@@ -97,11 +97,11 @@ export async function GET(_request: NextRequest) {
         image: user.image,
         role: user.role,
       },
-      tenant: user.tenant ? {
-        id: user.tenant.id,
-        name: user.tenant.name,
-        slug: user.tenant.slug,
-        plan: user.tenant.plan,
+      tenant: user.Tenant ? {
+        id: user.Tenant.id,
+        name: user.Tenant.name,
+        slug: user.Tenant.slug,
+        plan: user.Tenant.plan,
       } : null,
     })
   } catch (error) {
@@ -127,7 +127,7 @@ export async function PATCH(request: NextRequest) {
     // Get user with tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true },
+      include: { Tenant: true },
     })
 
     if (!user) {
@@ -150,8 +150,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update tenant settings if user has a tenant
-    if (user.tenantId) {
-      const existingSettings = (user.tenant?.settings as Partial<Settings>) || {}
+    if (user.TenantId) {
+      const existingSettings = (user.Tenant?.settings as Partial<Settings>) || {}
       
       const updatedSettings: Partial<Settings> = {
         ...existingSettings,
@@ -189,7 +189,7 @@ export async function PATCH(request: NextRequest) {
       }
 
       await prisma.tenant.update({
-        where: { id: user.tenantId },
+        where: { id: user.TenantId },
         data: {
           settings: updatedSettings as object,
           name: profile?.company || undefined,

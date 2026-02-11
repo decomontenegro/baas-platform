@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get user with tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true },
+      include: { Tenant: true },
     })
 
     if (!user?.tenantId) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const tenant = user.tenant!
+    const tenant = user.Tenant!
 
     // Get all providers
     const providers = await prisma.lLMProvider.findMany({
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Get tenant's agents
     const agents = await prisma.tenantAgent.findMany({
-      where: { tenantId: user.tenantId },
+      where: { tenantId: user.TenantId },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
     const [monthlyUsage, dailyUsage] = await Promise.all([
       prisma.lLMUsage.aggregate({
         where: {
-          tenantId: user.tenantId,
+          tenantId: user.TenantId,
           createdAt: { gte: startOfMonth },
         },
         _sum: { cost: true },
       }),
       prisma.lLMUsage.aggregate({
         where: {
-          tenantId: user.tenantId,
+          tenantId: user.TenantId,
           createdAt: { gte: startOfDay },
         },
         _sum: { cost: true },
@@ -190,7 +190,7 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true },
+      include: { Tenant: true },
     })
 
     if (!user?.tenantId) {
@@ -296,7 +296,7 @@ export async function PATCH(request: NextRequest) {
 
     // Update tenant
     const updatedTenant = await prisma.tenant.update({
-      where: { id: user.tenantId },
+      where: { id: user.TenantId },
       data: updateData,
     })
 

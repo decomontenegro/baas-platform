@@ -33,7 +33,7 @@ export async function POST(
 ) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
     const { id: knowledgeBaseId } = await params
 
     if (!tenantId) {

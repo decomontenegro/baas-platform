@@ -23,7 +23,7 @@ async function requireAuth() {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.tenantId
+    const tenantId = session.user.TenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')

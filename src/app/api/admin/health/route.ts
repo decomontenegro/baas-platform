@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Get user's tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
     if (!user?.tenantId) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const summary = await getHealthSummary(user.tenantId)
+    const summary = await getHealthSummary(user.TenantId)
 
     return NextResponse.json(summary)
   } catch (error) {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Get user's tenant
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { tenant: true }
+      include: { Tenant: true }
     })
 
     if (!user?.tenantId) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run health check
-    const result = await runHealthCheckCycle(user.tenantId)
+    const result = await runHealthCheckCycle(user.TenantId)
 
     return NextResponse.json({
       message: 'Health check completed',
