@@ -78,7 +78,7 @@ const navigation: NavGroup[] = [
       { title: "Admin Agent", href: "/admin", icon: Shield },
       { title: "Templates", href: "/templates", icon: LayoutTemplate },
       { title: "Knowledge Base", href: "/knowledge", icon: Brain },
-      { title: "Fluxos", href: "/dashboard/flows", icon: Workflow },
+      { title: "Fluxos", href: "/flows", icon: Workflow },
       { title: "Canais", href: "/channels", icon: Webhook },
     ],
   },
