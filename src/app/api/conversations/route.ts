@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
         lastMessageAt: conv.lastActivity,
         messageCount: 0,
         unreadCount: 0,
+        messages: [],
+        tags: [],
+        notes: [],
         participant: {
           id: conv.id,
           name: conv.name,
