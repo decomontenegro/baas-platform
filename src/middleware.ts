@@ -4,11 +4,18 @@ import type { NextRequest } from "next/server"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Auth re-enabled
-  const DISABLE_AUTH = false
+  // Public paths - no auth needed
+  const publicPaths = [
+    "/simple-login",
+    "/api/simple-auth", 
+    "/api/docs",
+    "/api/clawdbot",
+    "/api/health",
+    "/api/templates",
+    "/_next",
+    "/favicon.ico"
+  ]
   
-  // Public paths that don't need authentication
-  const publicPaths = ["/login", "/verify", "/api/auth", "/api/docs", "/api/clawdbot", "/api/health", "/api/templates", "/_next", "/favicon.ico"]
   const isPublic = publicPaths.some(path => 
     pathname === path || pathname.startsWith(path + "/") || pathname.startsWith(path)
   )
@@ -17,13 +24,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // Check for session cookie (database sessions, not JWT)
-  // NextAuth with database sessions uses session token cookies
-  const sessionToken = request.cookies.get("__Secure-next-auth.session-token")?.value 
-    || request.cookies.get("next-auth.session-token")?.value
+  // Check for simple auth cookie
+  const authCookie = request.cookies.get("baas-auth")?.value
+  const isAuthenticated = authCookie === "authenticated"
   
-  if (!sessionToken) {
-    // For API routes, return 401 instead of redirect
+  if (!isAuthenticated) {
+    // For API routes, return 401
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Authentication required" },
@@ -31,12 +37,10 @@ export async function middleware(request: NextRequest) {
       )
     }
     
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("callbackUrl", pathname)
-    return NextResponse.redirect(loginUrl)
+    // Redirect to simple login
+    return NextResponse.redirect(new URL("/simple-login", request.url))
   }
   
-  // Let the request through - actual session validation happens in route handlers
   return NextResponse.next()
 }
 
