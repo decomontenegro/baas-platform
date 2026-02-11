@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Zap,
   Plus,
@@ -260,8 +260,15 @@ const mockExecutions: ActionExecution[] = [
 ]
 
 export default function ActionsClient() {
-  const [actions, setActions] = useState<QuickAction[]>(mockActions)
-  const [executions, setExecutions] = useState<ActionExecution[]>(mockExecutions)
+  // TODO: Fetch real actions from cron jobs or configured automations
+  const [actions, setActions] = useState<QuickAction[]>([])
+  const [executions, setExecutions] = useState<ActionExecution[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // TODO: Fetch from /api/clawdbot/cron or similar
+    setIsLoading(false)
+  }, [])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)

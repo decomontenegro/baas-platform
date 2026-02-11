@@ -40,8 +40,9 @@ export default function HandoffPage() {
   const [showResolveModal, setShowResolveModal] = React.useState(false)
   const [resolutionNote, setResolutionNote] = React.useState('')
 
-  // Mock workspace ID - in real app, get from context/session
-  const workspaceId = 'clworkspace123'
+  // TODO: Get real workspace ID from session/context
+  // For now, using a default workspace ID
+  const workspaceId = 'default-workspace'
   const currentUserId = 'cluser123'
 
   // Hooks
