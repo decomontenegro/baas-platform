@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest) {
       include: {
         _count: {
           select: {
-            templates: {
+            Template: {
               where: {
                 deletedAt: null,
                 isActive: true,
@@ -43,7 +43,7 @@ export async function GET(_request: NextRequest) {
       description: category.description,
       sortOrder: category.sortOrder,
       isActive: category.isActive,
-      templateCount: category._count.templates,
+      templateCount: category._count.Template,
       createdAt: category.createdAt.toISOString(),
       updatedAt: category.updatedAt.toISOString(),
     }))

@@ -34,7 +34,7 @@ export async function GET(
         isActive: true,
       },
       include: {
-        category: true,
+        TemplateCategory: true,
       },
     })
 
@@ -65,17 +65,17 @@ export async function GET(
       name: template.name,
       slug: template.slug,
       description: template.description,
-      categoryId: template.categoryId,
-      category: template.category ? {
-        id: template.category.id,
-        name: template.category.name,
-        slug: template.category.slug,
-        icon: template.category.icon,
-        description: template.category.description,
-        sortOrder: template.category.sortOrder,
-        isActive: template.category.isActive,
-        createdAt: template.category.createdAt.toISOString(),
-        updatedAt: template.category.updatedAt.toISOString(),
+      categoryId: template.TemplateCategoryId,
+      category: template.TemplateCategory ? {
+        id: template.TemplateCategory.id,
+        name: template.TemplateCategory.name,
+        slug: template.TemplateCategory.slug,
+        icon: template.TemplateCategory.icon,
+        description: template.TemplateCategory.description,
+        sortOrder: template.TemplateCategory.sortOrder,
+        isActive: template.TemplateCategory.isActive,
+        createdAt: template.TemplateCategory.createdAt.toISOString(),
+        updatedAt: template.TemplateCategory.updatedAt.toISOString(),
       } : undefined,
       authorId: template.authorId,
       icon: template.icon,
@@ -158,7 +158,7 @@ export async function PUT(
     }
 
     // If changing category, validate it exists
-    if (categoryId && categoryId !== template.categoryId) {
+    if (categoryId && categoryId !== template.TemplateCategoryId) {
       const category = await prisma.templateCategory.findUnique({
         where: { id: categoryId },
       })
@@ -184,7 +184,7 @@ export async function PUT(
         updatedAt: new Date(),
       },
       include: {
-        category: true,
+        TemplateCategory: true,
       },
     })
 
