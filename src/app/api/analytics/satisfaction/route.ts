@@ -60,7 +60,10 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(satisfactionData)
+    return NextResponse.json({
+      success: true,
+      data: satisfactionData
+    })
   } catch (error) {
     console.error('Error fetching satisfaction analytics:', error)
     return NextResponse.json({ error: 'Erro ao buscar analytics de satisfação' }, { status: 500 })

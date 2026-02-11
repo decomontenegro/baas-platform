@@ -43,8 +43,11 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      channels: channelData,
-      metrics
+      success: true,
+      data: {
+        channels: channelData,
+        metrics
+      }
     })
   } catch (error) {
     console.error('Error fetching channel analytics:', error)

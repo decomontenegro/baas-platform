@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    return NextResponse.json(dailyStats)
+    return NextResponse.json({
+      success: true,
+      data: dailyStats
+    })
   } catch (error) {
     console.error('Error generating daily stats:', error)
     return NextResponse.json({ error: 'Erro ao gerar estatísticas diárias' }, { status: 500 })
