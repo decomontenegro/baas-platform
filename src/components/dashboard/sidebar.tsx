@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   BarChart3,
   Bot,
@@ -130,10 +130,27 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false, onCollapse, className }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [currentTenant, setCurrentTenant] = React.useState(tenants[0])
   const [focusedGroupIndex, setFocusedGroupIndex] = React.useState<number | null>(null)
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number>(0)
   const navRef = React.useRef<HTMLDivElement>(null)
+
+  // Handle logout for simple auth
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/simple', { 
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      router.push('/simple-login')
+      router.refresh()
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Fallback - still redirect to login
+      router.push('/simple-login')
+    }
+  }
 
   // Flatten all items for keyboard navigation
   const allItems = React.useMemo(() => {
@@ -376,7 +393,10 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                 Configurações
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive">
+              <DropdownMenuItem 
+                className="cursor-pointer text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 Sair
               </DropdownMenuItem>
@@ -412,7 +432,10 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                 Configurações
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive">
+              <DropdownMenuItem 
+                className="cursor-pointer text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 Sair
               </DropdownMenuItem>
