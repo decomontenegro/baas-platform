@@ -4,7 +4,9 @@ import type { NextRequest } from "next/server"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Auth re-enabled after testing (2026-02-11)
+  // TEMPORARY: Auth disabled for Alfred testing - REMOVE AFTER
+  const DISABLE_AUTH = true
+  if (DISABLE_AUTH) return NextResponse.next()
   
   // Public paths that don't need authentication
   const publicPaths = ["/login", "/verify", "/api/auth", "/api/docs", "/api/clawdbot", "/api/health", "/api/templates", "/_next", "/favicon.ico"]

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         include: {
           _count: {
             select: {
-              channels: true,
+              Channel: true,
             },
           },
         },
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       include: {
         _count: {
           select: {
-            channels: true,
+            Channel: true,
           },
         },
       },

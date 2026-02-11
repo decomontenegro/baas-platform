@@ -26,7 +26,7 @@ async function getWorkspaceWithAccess(workspaceId: string, tenantId: string) {
     include: {
       _count: {
         select: {
-          channels: true,
+          Channel: true,
         },
       },
     },
@@ -92,7 +92,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       include: {
         _count: {
           select: {
-            channels: true,
+            Channel: true,
           },
         },
       },
