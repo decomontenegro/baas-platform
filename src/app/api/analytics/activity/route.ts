@@ -26,17 +26,12 @@ export async function GET(request: NextRequest) {
         metadata: {}
       }))
       
-      return Response.json({
-        activities,
-        total: activities.length
-      })
+      // Hook expects array directly, not wrapped object
+      return Response.json(activities)
     }
   } catch (error) {
     console.error('Activity error:', error)
   }
   
-  return Response.json({
-    activities: [],
-    total: 0
-  })
+  return Response.json([])
 }
