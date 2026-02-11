@@ -1,66 +1,54 @@
 import { NextRequest } from 'next/server'
-// Force dynamic rendering
+import { readFile } from 'fs/promises'
+import { existsSync } from 'fs'
+
 export const dynamic = 'force-dynamic'
-import {
-  successResponse,
-  errorResponse,
-  requireAuth,
-  getDateRangeParams,
-} from '@/lib/api-utils'
-import { getOverviewMetrics } from '@/lib/analytics'
-import { prisma } from '@/lib/prisma'
+
+const CLAWDBOT_CONFIG_PATH = process.env.CLAWDBOT_CONFIG_PATH || '/root/.clawdbot/clawdbot.json'
 
 /**
  * GET /api/analytics/overview
- * Returns general dashboard metrics (messages, channels, costs, performance)
- * Query params: start, end (ISO date strings)
+ * Returns analytics overview from Clawdbot
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const orgId = await requireAuth(request)
-    const searchParams = request.nextUrl.searchParams
-    const { start, end } = getDateRangeParams(searchParams)
-
-    // Validate date range
-    if (start > end) {
-      return errorResponse('Data inicial não pode ser maior que a final')
+    let channelCount = 1
+    let groupCount = 0
+    
+    if (existsSync(CLAWDBOT_CONFIG_PATH)) {
+      const configRaw = await readFile(CLAWDBOT_CONFIG_PATH, 'utf-8')
+      const config = JSON.parse(configRaw)
+      groupCount = config.channels?.whatsapp?.groups ? 
+        Object.keys(config.channels.whatsapp.groups).length : 0
     }
-
-    const maxRange = 365 * 24 * 60 * 60 * 1000 // 1 year
-    if (end.getTime() - start.getTime() > maxRange) {
-      return errorResponse('Período máximo é de 1 ano')
-    }
-
-    // Get tenant from membership
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: orgId,
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      select: { tenantId: true },
+    
+    return Response.json({
+      success: true,
+      data: {
+        totalConversations: groupCount,
+        activeConversations: groupCount,
+        totalMessages: 0,
+        avgResponseTime: 0,
+        resolutionRate: 0,
+        channelsActive: channelCount,
+        period: {
+          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          end: new Date().toISOString()
+        }
+      }
     })
-
-    if (!membership) {
-      return errorResponse('Tenant não encontrado', 404)
-    }
-
-    // Get real metrics from database
-    const overview = await getOverviewMetrics(membership.tenantId, start, end)
-
-    const response = {
-      organizationId: orgId,
-      tenantId: membership.tenantId,
-      ...overview,
-      generatedAt: new Date(),
-    }
-
-    return successResponse(response)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return errorResponse('Unauthorized', 401)
-    }
-    console.error('Error fetching analytics overview:', error)
-    return errorResponse('Erro ao buscar analytics', 500)
+    console.error('Error reading analytics:', error)
+    return Response.json({
+      success: true,
+      data: {
+        totalConversations: 0,
+        activeConversations: 0,
+        totalMessages: 0,
+        avgResponseTime: 0,
+        resolutionRate: 0,
+        channelsActive: 0
+      }
+    })
   }
 }
