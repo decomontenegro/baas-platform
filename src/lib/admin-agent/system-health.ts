@@ -25,6 +25,12 @@ export interface SystemHealth {
     total: number
     percent: number
   }
+  system: {
+    nodeVersion: string
+    platform: string
+    pid: number
+    environment: string
+  }
   version: string
 }
 
@@ -92,17 +98,163 @@ async function checkExternalApi(
 }
 
 /**
+ * Check Anthropic Claude API
+ */
+async function checkAnthropicApi(): Promise<DependencyHealth> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return {
+      name: 'Anthropic Claude',
+      status: 'degraded',
+      latencyMs: 0,
+      message: 'API key not configured',
+      lastCheck: new Date()
+    }
+  }
+
+  const start = Date.now()
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }]
+      })
+    })
+
+    clearTimeout(timeout)
+    const latency = Date.now() - start
+
+    return {
+      name: 'Anthropic Claude',
+      status: response.ok ? (latency > 3000 ? 'degraded' : 'healthy') : 'degraded',
+      latencyMs: latency,
+      message: response.ok ? undefined : `HTTP ${response.status}`,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name: 'Anthropic Claude',
+      status: 'unhealthy',
+      latencyMs: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Request failed',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
+ * Check OpenAI API
+ */
+async function checkOpenAiApi(): Promise<DependencyHealth> {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      name: 'OpenAI',
+      status: 'degraded',
+      latencyMs: 0,
+      message: 'API key not configured',
+      lastCheck: new Date()
+    }
+  }
+
+  const start = Date.now()
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+
+    const response = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      }
+    })
+
+    clearTimeout(timeout)
+    const latency = Date.now() - start
+
+    return {
+      name: 'OpenAI',
+      status: response.ok ? (latency > 3000 ? 'degraded' : 'healthy') : 'degraded',
+      latencyMs: latency,
+      message: response.ok ? undefined : `HTTP ${response.status}`,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name: 'OpenAI',
+      status: 'unhealthy',
+      latencyMs: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Request failed',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
+ * Check disk space
+ */
+async function checkDiskSpace(): Promise<DependencyHealth> {
+  try {
+    const fs = require('fs').promises
+    const stats = await fs.statfs('.')
+    
+    const totalBytes = stats.blocks * stats.bsize
+    const freeBytes = stats.bavail * stats.bsize
+    const usedBytes = totalBytes - freeBytes
+    const usedPercent = Math.round((usedBytes / totalBytes) * 100)
+    
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
+    if (usedPercent > 95) status = 'unhealthy'
+    else if (usedPercent > 85) status = 'degraded'
+    
+    return {
+      name: 'Disk Space',
+      status,
+      latencyMs: 0,
+      message: `${usedPercent}% used`,
+      lastCheck: new Date()
+    }
+  } catch (error) {
+    return {
+      name: 'Disk Space',
+      status: 'degraded',
+      latencyMs: 0,
+      message: 'Unable to check disk space',
+      lastCheck: new Date()
+    }
+  }
+}
+
+/**
  * Get memory usage (Node.js process)
  */
 function getMemoryUsage(): { used: number; total: number; percent: number } {
   const usage = process.memoryUsage()
-  const totalHeap = usage.heapTotal
   const usedHeap = usage.heapUsed
+  const totalHeap = usage.heapTotal
+  
+  // Use RSS (Resident Set Size) as a more accurate representation
+  const rss = usage.rss
+  const usedMB = Math.round(rss / 1024 / 1024)
+  const heapMB = Math.round(totalHeap / 1024 / 1024)
+  
+  // Calculate percentage based on heap usage vs total heap
+  const heapPercent = Math.round((usedHeap / totalHeap) * 100)
   
   return {
-    used: Math.round(usedHeap / 1024 / 1024), // MB
-    total: Math.round(totalHeap / 1024 / 1024), // MB
-    percent: Math.round((usedHeap / totalHeap) * 100)
+    used: usedMB, // RSS in MB (actual memory used by process)
+    total: heapMB, // Heap total in MB
+    percent: Math.min(heapPercent, 100) // Ensure it never exceeds 100%
   }
 }
 
@@ -111,6 +263,18 @@ function getMemoryUsage(): { used: number; total: number; percent: number } {
  */
 function getUptime(): number {
   return Math.round(process.uptime())
+}
+
+/**
+ * Get system information
+ */
+function getSystemInfo() {
+  return {
+    nodeVersion: process.version,
+    platform: `${process.platform} ${process.arch}`,
+    pid: process.pid,
+    environment: process.env.NODE_ENV || 'development'
+  }
 }
 
 /**
@@ -170,8 +334,10 @@ export async function checkSystemHealth(): Promise<SystemHealth> {
   const dependencyChecks = await Promise.all([
     checkDatabase(),
     Promise.resolve(checkEnvVars()),
-    // Add more dependency checks as needed:
-    // checkExternalApi('OpenAI', 'https://api.openai.com/v1/models'),
+    checkDiskSpace(),
+    checkAnthropicApi(),
+    checkOpenAiApi(),
+    // Add more checks as needed:
     // checkExternalApi('Stripe', 'https://api.stripe.com/v1'),
   ])
   
@@ -194,6 +360,7 @@ export async function checkSystemHealth(): Promise<SystemHealth> {
     uptime: getUptime(),
     dependencies: dependencyChecks,
     memory,
+    system: getSystemInfo(),
     version: process.env.npm_package_version || '0.1.0'
   }
 }

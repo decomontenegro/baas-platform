@@ -124,10 +124,25 @@ export async function GET(request: NextRequest) {
       total: activity.length,
     })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return errorResponse('Unauthorized', 401)
+    console.log('Activity DB fallback triggered, using Clawdbot API:', error.message)
+    
+    // FALLBACK: Use Clawdbot API when auth/database fails
+    try {
+      const searchParams = request.nextUrl.searchParams
+      const limit = searchParams.get('limit') || '20'
+      
+      const clawdbotResponse = await fetch(`http://localhost:3000/api/clawdbot/analytics/activity?limit=${limit}`)
+      
+      if (!clawdbotResponse.ok) {
+        throw new Error('Clawdbot API failed')
+      }
+      
+      const data = await clawdbotResponse.json()
+      return successResponse(data)
+      
+    } catch (fallbackError) {
+      console.error('Both activity and fallback failed:', error, fallbackError)
+      return errorResponse('Erro ao buscar atividade', 500)
     }
-    console.error('Error fetching activity:', error)
-    return errorResponse('Erro ao buscar atividade', 500)
   }
 }

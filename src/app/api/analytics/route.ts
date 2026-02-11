@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma'
  * GET /api/analytics
  * Main analytics endpoint - returns overview metrics
  * Alias for /api/analytics/overview
+ * FALLBACK: Uses Clawdbot API when database/auth fails
  */
 export async function GET(request: NextRequest) {
   try {
@@ -57,10 +58,22 @@ export async function GET(request: NextRequest) {
 
     return successResponse(response)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return errorResponse('Unauthorized', 401)
+    console.log('Analytics DB fallback triggered, using Clawdbot API:', error.message)
+    
+    // FALLBACK: Use Clawdbot API when auth/database fails
+    try {
+      const clawdbotResponse = await fetch('http://localhost:3000/api/clawdbot/analytics')
+      
+      if (!clawdbotResponse.ok) {
+        throw new Error('Clawdbot API failed')
+      }
+      
+      const data = await clawdbotResponse.json()
+      return successResponse(data)
+      
+    } catch (fallbackError) {
+      console.error('Both analytics and fallback failed:', error, fallbackError)
+      return errorResponse('Erro ao buscar analytics', 500)
     }
-    console.error('Error fetching analytics:', error)
-    return errorResponse('Erro ao buscar analytics', 500)
   }
 }
