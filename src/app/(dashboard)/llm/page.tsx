@@ -4,7 +4,21 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TokenCounterStat } from "@/components/llm"
 import { UsageProgressBar } from "@/components/llm"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle2, Circle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+
+interface OAuthAccount {
+  id: string
+  name: string
+  active: boolean
+  daily: { used: number; limit: number; percentage: number; remaining: string }
+  weekly: { used: number; limit: number; percentage: number; remaining: string }
+}
+
+interface OAuthData {
+  accounts: OAuthAccount[]
+  autoSwitch: boolean
+}
 
 interface UsageData {
   totalTokens: number
@@ -18,17 +32,26 @@ interface UsageData {
 
 export default function LLMUsagePage() {
   const [data, setData] = React.useState<UsageData | null>(null)
+  const [oauthData, setOauthData] = React.useState<OAuthData | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [tracking, setTracking] = React.useState(true)
 
   React.useEffect(() => {
     async function fetchUsage() {
       try {
-        const res = await fetch('/api/clawdbot/usage')
-        const result = await res.json()
-        if (result.success && result.data) {
-          setData(result.data)
-          setTracking(result.tracking !== false)
+        const [usageRes, oauthRes] = await Promise.all([
+          fetch('/api/clawdbot/usage'),
+          fetch('/api/clawdbot/oauth-usage')
+        ])
+        const usageResult = await usageRes.json()
+        const oauthResult = await oauthRes.json()
+        
+        if (usageResult.success && usageResult.data) {
+          setData(usageResult.data)
+          setTracking(usageResult.tracking !== false)
+        }
+        if (oauthResult.success && oauthResult.data) {
+          setOauthData(oauthResult.data)
         }
       } catch (error) {
         console.error('Error fetching usage:', error)
@@ -144,7 +167,58 @@ export default function LLMUsagePage() {
         </Card>
       </div>
 
-      <Card>
+      {/* OAuth Accounts Card */}
+      {oauthData && oauthData.accounts.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              OAuth Accounts
+              {oauthData.autoSwitch && (
+                <span className="text-xs font-normal text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                  Auto-switch ativo
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {oauthData.accounts.map((account) => (
+                <div key={account.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    {account.active ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="font-medium">{account.name}</span>
+                    {account.active && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Ativo</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Diário</span>
+                        <span>{account.daily.percentage}% restante ({account.daily.remaining})</span>
+                      </div>
+                      <Progress value={account.daily.percentage} className="h-2" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Semanal</span>
+                        <span>{account.weekly.percentage}% restante ({account.weekly.remaining})</span>
+                      </div>
+                      <Progress value={account.weekly.percentage} className="h-2" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Histórico de Uso</CardTitle>
         </CardHeader>
