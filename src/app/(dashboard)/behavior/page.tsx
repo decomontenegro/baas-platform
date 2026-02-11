@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Save, 
@@ -9,11 +9,12 @@ import {
   Bot,
   User,
   Sparkles,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { Slider } from '@/components/ui/slider'
-import { mockTemplates, mockPersonality } from '@/hooks/use-personality'
+
 import { cn } from '@/lib/utils'
 import type { Personality, PersonalityTemplate } from '@/types'
 
@@ -32,7 +33,27 @@ const samplePrompts = [
 ]
 
 export default function BehaviorPage() {
-  const [personality, setPersonality] = useState<Partial<Personality>>(mockPersonality)
+  const [personality, setPersonality] = useState<Partial<Personality>>({})
+  const [templates, setTemplates] = useState<PersonalityTemplate[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchPersonality() {
+      try {
+        const res = await fetch('/api/clawdbot/personality')
+        const data = await res.json()
+        if (data.success) {
+          setPersonality(data.data.personality)
+          setTemplates(data.data.templates)
+        }
+      } catch (error) {
+        console.error('Error fetching personality:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchPersonality()
+  }, [])
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -67,7 +88,7 @@ export default function BehaviorPage() {
   }
 
   const handleReset = () => {
-    setPersonality(mockPersonality)
+    setPersonality({})
     setSelectedTemplate(null)
   }
 
@@ -103,9 +124,20 @@ export default function BehaviorPage() {
     setChatMessages(prev => [...prev, assistantMessage])
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen">
+        <Header title="Behavior" subtitle="Customize your bot's personality and responses" />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen">
-      <Header title="Behavior" subtitle="Customize your bot's personality and responses" />
+      <Header title="Behavior" subtitle="Personalidade real do Lobo 🐺" />
       
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -122,7 +154,7 @@ export default function BehaviorPage() {
                 Start with a preset personality or customize from scratch
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {mockTemplates.map((template) => (
+                {templates.map((template) => (
                   <button
                     key={template.id}
                     onClick={() => handleTemplateSelect(template)}

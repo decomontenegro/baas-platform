@@ -2,38 +2,31 @@
 
 import * as React from "react"
 import { AlertCard, type Alert } from "@/components/llm"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 export default function LLMAlertsPage() {
-  // TODO: Replace with real data from API
-  const mockAlerts: Alert[] = [
-    {
-      id: "1",
-      title: "Budget 90% atingido",
-      message: "O consumo mensal atingiu 90% do limite configurado. Considere aumentar o budget ou revisar o uso.",
-      severity: "warning",
-      status: "active",
-      type: "budget",
-      createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 min ago
-    },
-    {
-      id: "2",
-      title: "Provider Google AI degradado",
-      message: "O provider Google AI está com latência elevada. Algumas requisições podem estar lentas.",
-      severity: "warning",
-      status: "acknowledged",
-      type: "provider",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    },
-    {
-      id: "3",
-      title: "Rate limit OpenAI atingido",
-      message: "O rate limit do OpenAI foi atingido temporariamente. Requisições foram enfileiradas.",
-      severity: "info",
-      status: "resolved",
-      type: "rate_limit",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    },
-  ]
+  const [alerts, setAlerts] = React.useState<Alert[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    async function fetchAlerts() {
+      try {
+        const res = await fetch('/api/clawdbot/alerts')
+        const data = await res.json()
+        if (data.success) {
+          setAlerts(data.data.map((a: Alert & { createdAt: string }) => ({
+            ...a,
+            createdAt: new Date(a.createdAt)
+          })))
+        }
+      } catch (error) {
+        console.error('Error fetching alerts:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchAlerts()
+  }, [])
 
   const handleAcknowledge = (id: string) => {
     console.log("Acknowledge:", id)
@@ -41,6 +34,14 @@ export default function LLMAlertsPage() {
 
   const handleDismiss = (id: string) => {
     console.log("Dismiss:", id)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
@@ -52,16 +53,24 @@ export default function LLMAlertsPage() {
         </p>
       </div>
 
-      <div className="space-y-4">
-        {mockAlerts.map((alert) => (
-          <AlertCard
-            key={alert.id}
-            alert={alert}
-            onAcknowledge={handleAcknowledge}
-            onDismiss={handleDismiss}
-          />
-        ))}
-      </div>
+      {alerts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
+          <h3 className="text-lg font-medium">Tudo certo!</h3>
+          <p className="text-muted-foreground">Nenhum alerta ativo no momento.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {alerts.map((alert) => (
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              onAcknowledge={handleAcknowledge}
+              onDismiss={handleDismiss}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
