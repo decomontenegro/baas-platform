@@ -318,9 +318,11 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
-                Configurações
+              <DropdownMenuItem className="cursor-pointer" asChild>
+                <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Configurações
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="cursor-pointer text-destructive">
@@ -354,9 +356,11 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
-                Configurações
+              <DropdownMenuItem className="cursor-pointer" asChild>
+                <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Configurações
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="cursor-pointer text-destructive">
