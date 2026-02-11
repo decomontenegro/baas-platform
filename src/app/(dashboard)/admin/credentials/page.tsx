@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Key, 
@@ -112,7 +112,14 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 
 export default function CredentialsPage() {
-  const [credentials, setCredentials] = useState<OAuthCredential[]>(mockCredentials)
+  // Real credentials would be fetched from backend
+  const [credentials, setCredentials] = useState<OAuthCredential[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // TODO: Fetch real OAuth credentials from API
+    setIsLoading(false)
+  }, [])
   const [showAddModal, setShowAddModal] = useState(false)
   const [editCredential, setEditCredential] = useState<OAuthCredential | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)

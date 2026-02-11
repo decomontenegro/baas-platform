@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   GitBranch, 
   Plus, 
@@ -92,7 +92,14 @@ const TRIGGER_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default function FlowsPage() {
-  const [flows] = useState<Flow[]>(mockFlows)
+  // Real flows would come from cron jobs / automations
+  const [flows] = useState<Flow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // TODO: Fetch real flows from /api/clawdbot/cron or similar
+    setIsLoading(false)
+  }, [])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 

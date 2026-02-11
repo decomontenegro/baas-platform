@@ -105,41 +105,55 @@ export default function TemplateDetailPage() {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
 
   useEffect(() => {
-    // Simulate fetching template
-    const t = getTemplate(templateId)
-    if (t) {
-      setTemplate(t)
-    } else {
-      // For templates not in mock, create a placeholder
-      setTemplate({
-        id: templateId,
-        name: 'Template',
-        slug: templateId,
-        description: 'Template de bot configurável',
-        categoryId: 'cat_atendimento',
-        icon: '🤖',
-        color: 'blue',
-        tags: ['template'],
-        usageCount: 0,
-        rating: 0,
-        ratingCount: 0,
-        isPublic: true,
-        isOfficial: false,
-        isFeatured: false,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        config: {
-          systemPrompt: 'Você é um assistente útil.',
-          personality: { creativity: 50, formality: 50, verbosity: 50, empathy: 50, humor: 50 },
-          welcomeMessage: 'Olá! Como posso ajudar?',
-          suggestedKnowledge: [],
-          handoffRules: { enabled: false, triggers: [], message: '' },
-          quickReplies: [],
-          exampleConversations: [],
-        },
-      })
+    // Fetch real template from API
+    async function fetchTemplate() {
+      try {
+        const res = await fetch(`/api/templates/${templateId}`)
+        const data = await res.json()
+        if (data.success && data.data) {
+          setTemplate(data.data)
+          return
+        }
+      } catch (error) {
+        console.error('Error fetching template:', error)
+      }
+      // Fallback to mock if API fails
+      const t = mockTemplates[templateId]
+      if (t) {
+        setTemplate(t)
+      } else {
+        // Create placeholder
+        setTemplate({
+          id: templateId,
+          name: 'Template',
+          slug: templateId,
+          description: 'Template de bot configurável',
+          categoryId: 'cat_atendimento',
+          icon: '🤖',
+          color: 'blue',
+          tags: ['template'],
+          usageCount: 0,
+          rating: 0,
+          ratingCount: 0,
+          isPublic: true,
+          isOfficial: false,
+          isFeatured: false,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          config: {
+            systemPrompt: 'Você é um assistente útil.',
+            personality: { creativity: 50, formality: 50, verbosity: 50, empathy: 50, humor: 50 },
+            welcomeMessage: 'Olá! Como posso ajudar?',
+            suggestedKnowledge: [],
+            handoffRules: { enabled: false, triggers: [], message: '' },
+            quickReplies: [],
+            exampleConversations: [],
+          },
+        })
+      }
     }
+    fetchTemplate()
   }, [templateId])
 
   const handleApplyTemplate = async (config: TemplateConfig) => {

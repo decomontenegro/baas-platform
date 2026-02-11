@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
@@ -20,7 +20,7 @@ import {
 import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import { Tabs, TabContent } from '@/components/ui/tabs'
-import { mockChannels } from '@/hooks/use-channels'
+
 import { formatDate, formatNumber, cn } from '@/lib/utils'
 import type { Channel, Message, MemoryItem } from '@/types'
 
@@ -56,11 +56,49 @@ export default function ChannelDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [channel, setChannel] = useState<Channel | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Find channel from mock data
-  const channel = mockChannels.find(c => c.id === channelId)
+  // Fetch channel from real API
+  useEffect(() => {
+    async function fetchChannel() {
+      try {
+        const res = await fetch('/api/clawdbot/channels')
+        const data = await res.json()
+        if (data.success && data.data) {
+          const found = data.data.find((c: { id: string }) => c.id === channelId)
+          if (found) {
+            setChannel({
+              id: found.id,
+              name: found.name,
+              type: found.type === 'webchat' ? 'api' : found.type,
+              status: found.status === 'connected' ? 'active' : 'inactive',
+              config: found.config || {},
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messagesCount: found.groups || 0,
+              lastActivity: new Date().toISOString(),
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching channel:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchChannel()
+  }, [channelId])
   
-  const [editedChannel, setEditedChannel] = useState<Partial<Channel>>(channel || {})
+  const [editedChannel, setEditedChannel] = useState<Partial<Channel>>({})
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   if (!channel) {
     return (
