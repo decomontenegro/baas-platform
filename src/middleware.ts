@@ -4,6 +4,8 @@ import type { NextRequest } from "next/server"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
+  // Auth re-enabled after testing (2026-02-11)
+  
   // Public paths that don't need authentication
   const publicPaths = ["/login", "/verify", "/api/auth", "/api/docs", "/api/clawdbot", "/api/health", "/api/templates", "/_next", "/favicon.ico"]
   const isPublic = publicPaths.some(path => 
