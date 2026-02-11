@@ -117,9 +117,10 @@ export default function LLMUsagePage() {
           <CardContent className="space-y-4">
             {usageData.budget > 0 ? (
               <UsageProgressBar
-                current={usageData.totalTokens}
+                current={usageData.cost}
                 limit={usageData.budget}
                 thresholds={{ warning: 70, danger: 90 }}
+                formatValue={(v) => `$${v.toFixed(2)}`}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Sem limite definido</p>
