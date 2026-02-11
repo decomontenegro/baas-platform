@@ -92,13 +92,25 @@ const TRIGGER_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default function FlowsPage() {
-  // Real flows would come from cron jobs / automations
-  const [flows] = useState<Flow[]>([])
+  // Real flows from Clawdbot cron jobs
+  const [flows, setFlows] = useState<Flow[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Fetch real flows from /api/clawdbot/cron or similar
-    setIsLoading(false)
+    async function fetchFlows() {
+      try {
+        const res = await fetch('/api/clawdbot/flows')
+        const data = await res.json()
+        if (data.success && data.data) {
+          setFlows(data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch flows:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchFlows()
   }, [])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
