@@ -1,4 +1,4 @@
-import { FileQuestion, Home, ArrowLeft } from 'lucide-react'
+import { FileQuestion, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
@@ -16,19 +16,13 @@ export default function NotFound() {
             A página que você está procurando não existe ou foi movida.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button asChild className="flex-1">
-              <Link href="/dashboard">
-                <Home className="mr-2 h-4 w-4" />
-                Dashboard
-              </Link>
-            </Button>
-            <Button variant="outline" onClick={() => history.back()}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-          </div>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/dashboard">
+              <Home className="mr-2 h-4 w-4" />
+              Ir para o Dashboard
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
