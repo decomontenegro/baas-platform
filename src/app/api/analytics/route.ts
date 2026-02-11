@@ -40,73 +40,6 @@ export async function GET(request: NextRequest) {
     console.error('Analytics fallback failed:', error)
     return errorResponse('Erro ao buscar analytics', 500)
   }
-
-  /* DISABLED - Database version
-  try {
-    const userId = await requireAuth(request)
-    const searchParams = request.nextUrl.searchParams
-    const { start, end } = getDateRangeParams(searchParams)
-
-    // Validate date range
-    if (start > end) {
-      return errorResponse('Data inicial não pode ser maior que a final')
-    }
-
-    const maxRange = 365 * 24 * 60 * 60 * 1000 // 1 year
-    if (end.getTime() - start.getTime() > maxRange) {
-      return errorResponse('Período máximo é de 1 ano')
-    }
-
-    // Get tenant from membership
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: userId,
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      select: { tenantId: true },
-    })
-
-    if (!membership) {
-      return errorResponse('Tenant não encontrado', 404)
-    }
-
-    // Get real metrics from database
-    const overview = await getOverviewMetrics(membership.tenantId, start, end)
-
-    const response = {
-      organizationId: userId,
-      tenantId: membership.tenantId,
-      ...overview,
-      generatedAt: new Date(),
-    }
-
-    return successResponse(response)
-  } catch (error) {
-    console.log('Analytics DB fallback triggered, using Clawdbot API:', error.message)
-    
-    // FALLBACK: Use Clawdbot API when auth/database fails
-    try {
-      // Create mock data in correct format for Analytics interface
-      const fallbackData = {
-        totalMessages: 44,  // Based on real conversation count
-        totalChannels: 1,   // WhatsApp channel
-        activeChannels: 1,  // Active WhatsApp  
-        avgResponseTime: 1.2,
-        messagesPerDay: generateMockDailyStats(30),
-        channelBreakdown: [
-          { type: 'whatsapp', count: 44, percentage: 100 }
-        ],
-        recentActivity: generateMockActivity()
-      }
-      
-      return successResponse(fallbackData)
-      
-    } catch (fallbackError) {
-      console.error('Both analytics and fallback failed:', error, fallbackError)
-      return errorResponse('Erro ao buscar analytics', 500)
-    }
-  }
 }
 
 // Helper functions for mock data
@@ -154,5 +87,4 @@ function generateMockActivity() {
       createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     },
   ]
-  }
 }

@@ -7,10 +7,10 @@ import { prisma } from '@/lib/prisma'
 import { getPlan, type PlanId } from './plans'
 
 // Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-12-18.acacia',
   typescript: true,
-})
+}) : null
 
 // Webhook signing secret
 export const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
