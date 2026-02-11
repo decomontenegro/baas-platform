@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     if (user.Tenant?.adminAgent) {
       // Update existing
       adminAgent = await prisma.adminAgent.update({
-        where: { tenantId: user.TenantId },
+        where: { tenantId: user.tenantId },
         data: {
           ...data,
           updatedAt: new Date()
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       // Create new
       adminAgent = await prisma.adminAgent.create({
         data: {
-          tenantId: user.TenantId,
+          tenantId: user.tenantId,
           name: data.name || 'Admin Agent',
           alertEmail: data.alertEmail,
           alertWhatsApp: data.alertWhatsApp,
@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.adminAgent.update({
-      where: { tenantId: user.TenantId },
+      where: { tenantId: user.tenantId },
       data: { status: 'DISABLED' }
     })
 

@@ -23,7 +23,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const { id } = await params
 
     if (!tenantId) {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const userId = session.user.id
     const { id } = await params
 

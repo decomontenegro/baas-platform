@@ -19,7 +19,7 @@ async function requireAuth() {
 export async function GET() {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')
@@ -62,7 +62,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const role = session.user.role
 
     if (!tenantId) {

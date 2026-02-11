@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     // Update tenant settings
     const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.TenantId },
+      where: { id: user.tenantId },
       data: {
         settings: {
           ...currentSettings,
@@ -277,7 +277,7 @@ export async function PATCH(request: NextRequest) {
     // Update tenant settings
     const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.TenantId },
+      where: { id: user.tenantId },
       data: {
         settings: {
           ...currentSettings,
@@ -351,7 +351,7 @@ export async function DELETE(request: NextRequest) {
     // Update tenant settings
     const currentSettings = (user.Tenant.settings as Record<string, any>) || {}
     await prisma.tenant.update({
-      where: { id: user.TenantId },
+      where: { id: user.tenantId },
       data: {
         settings: {
           ...currentSettings,

@@ -22,7 +22,7 @@ export async function GET(
 ) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const { id } = await params
 
     if (!tenantId) {
@@ -54,7 +54,7 @@ export async function PATCH(
 ) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const { id } = await params
 
     if (!tenantId) {
@@ -109,7 +109,7 @@ export async function DELETE(
 ) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
     const { id } = await params
 
     if (!tenantId) {

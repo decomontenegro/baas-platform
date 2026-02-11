@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest) {
     const agent = await prisma.tenantAgent.findFirst({
       where: {
         id: agentId,
-        tenantId: user.TenantId,
+        tenantId: user.tenantId,
       },
     })
 

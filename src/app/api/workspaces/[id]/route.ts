@@ -47,7 +47,7 @@ async function getWorkspaceWithAccess(workspaceId: string, tenantId: string) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')
@@ -108,7 +108,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')

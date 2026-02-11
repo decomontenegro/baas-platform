@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No tenant found' }, { status: 404 })
     }
 
-    const tenantId = user.TenantId
+    const tenantId = user.tenantId
     const { searchParams } = new URL(request.url)
     const botId = searchParams.get('botId')
     const period = searchParams.get('period') || '7d'

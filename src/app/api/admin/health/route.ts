@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const summary = await getHealthSummary(user.TenantId)
+    const summary = await getHealthSummary(user.tenantId)
 
     return NextResponse.json(summary)
   } catch (error) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run health check
-    const result = await runHealthCheckCycle(user.TenantId)
+    const result = await runHealthCheckCycle(user.tenantId)
 
     return NextResponse.json({
       message: 'Health check completed',

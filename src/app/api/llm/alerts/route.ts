@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tenantId = user.TenantId;
+    const tenantId = user.tenantId;
 
     // 3. Parse query params
     const { searchParams } = new URL(request.url);
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tenantId = user.TenantId;
+    const tenantId = user.tenantId;
     const userId = session.user.id;
 
     // 3. Parse body

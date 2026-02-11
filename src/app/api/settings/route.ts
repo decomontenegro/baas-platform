@@ -150,7 +150,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update tenant settings if user has a tenant
-    if (user.TenantId) {
+    if (user.tenantId) {
       const existingSettings = (user.Tenant?.settings as Partial<Settings>) || {}
       
       const updatedSettings: Partial<Settings> = {
@@ -189,7 +189,7 @@ export async function PATCH(request: NextRequest) {
       }
 
       await prisma.tenant.update({
-        where: { id: user.TenantId },
+        where: { id: user.tenantId },
         data: {
           settings: updatedSettings as object,
           name: profile?.company || undefined,

@@ -25,7 +25,7 @@ const rulesFilterSchema = paginationSchema.extend({
 export async function GET(request: NextRequest) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth()
-    const tenantId = session.user.TenantId
+    const tenantId = session.user.tenantId
 
     if (!tenantId) {
       throw new NotFoundError('Tenant')

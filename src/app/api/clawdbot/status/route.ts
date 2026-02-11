@@ -83,7 +83,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       const channelCount = await prisma.channel.count({
         where: {
           workspace: {
-            tenantId: user.TenantId,
+            tenantId: user.tenantId,
           },
           type: 'WHATSAPP',
         },
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       const activeCount = await prisma.channel.count({
         where: {
           workspace: {
-            tenantId: user.TenantId,
+            tenantId: user.tenantId,
           },
           type: 'WHATSAPP',
           isActive: true,
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       const lastSyncChannel = await prisma.channel.findFirst({
         where: {
           workspace: {
-            tenantId: user.TenantId,
+            tenantId: user.tenantId,
           },
           type: 'WHATSAPP',
         },

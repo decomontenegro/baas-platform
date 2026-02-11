@@ -163,7 +163,7 @@ async function authenticateRequest(
     
     if (user?.tenantId) {
       // If tenant_id provided in body, verify it matches
-      if (bodyTenantId && bodyTenantId !== user.TenantId) {
+      if (bodyTenantId && bodyTenantId !== user.tenantId) {
         return {
           authenticated: false,
           error: 'tenant_id does not match user tenant'
@@ -172,7 +172,7 @@ async function authenticateRequest(
       
       return {
         authenticated: true,
-        tenantId: user.TenantId
+        tenantId: user.tenantId
       };
     }
   }

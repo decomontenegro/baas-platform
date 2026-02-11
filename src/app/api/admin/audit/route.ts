@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch logs and count in parallel
     const [logs, total] = await Promise.all([
-      getAuditLog(user.TenantId, filters),
-      countAuditLogs(user.TenantId, {
+      getAuditLog(user.tenantId, filters),
+      countAuditLogs(user.tenantId, {
         userId,
         action,
         resource,
