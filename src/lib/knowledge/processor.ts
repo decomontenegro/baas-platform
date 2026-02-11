@@ -35,7 +35,7 @@ export async function processDocument(
     const document = await prisma.knowledgeDocument.findUnique({
       where: { id: documentId },
       include: {
-        knowledgeBase: true,
+        KnowledgeBase: true,
       },
     })
     
@@ -51,14 +51,14 @@ export async function processDocument(
     
     // Get chunk config from knowledge base settings
     const chunkConfig: Partial<ChunkConfig> = {
-      chunkSize: document.knowledgeBase.chunkSize,
-      chunkOverlap: document.knowledgeBase.chunkOverlap,
+      chunkSize: document.KnowledgeBase.chunkSize,
+      chunkOverlap: document.KnowledgeBase.chunkOverlap,
       ...options.chunkConfig,
     }
     
     // Get embedding config
     const embeddingConfig: Partial<EmbeddingConfig> = {
-      model: document.knowledgeBase.embeddingModel,
+      model: document.KnowledgeBase.embeddingModel,
       ...options.embeddingConfig,
     }
     

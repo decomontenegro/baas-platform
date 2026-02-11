@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         deletedAt: null,
       },
       include: {
-        knowledgeBase: {
+        KnowledgeBase: {
           select: { id: true, name: true },
         },
         assignments: {
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       model: bot.model,
       temperature: bot.temperature,
       maxTokens: bot.maxTokens,
-      knowledgeBaseId: bot.knowledgeBaseId || undefined,
-      knowledgeBaseName: bot.knowledgeBase?.name,
+      knowledgeBaseId: bot.KnowledgeBaseId || undefined,
+      knowledgeBaseName: bot.KnowledgeBase?.name,
       welcomeMessage: bot.welcomeMessage || undefined,
       quickReplies: bot.quickReplies,
       handoffEnabled: bot.handoffEnabled,
@@ -137,10 +137,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Validate knowledge base if changing
-    if (body.knowledgeBaseId) {
-      const kb = await prisma.knowledgeBase.findFirst({
+    if (body.KnowledgeBaseId) {
+      const kb = await prisma.KnowledgeBase.findFirst({
         where: {
-          id: body.knowledgeBaseId,
+          id: body.KnowledgeBaseId,
           tenantId,
           deletedAt: null,
         },
@@ -206,7 +206,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (body.model !== undefined) updateData.model = body.model
     if (body.temperature !== undefined) updateData.temperature = body.temperature
     if (body.maxTokens !== undefined) updateData.maxTokens = body.maxTokens
-    if (body.knowledgeBaseId !== undefined) updateData.knowledgeBaseId = body.knowledgeBaseId
+    if (body.KnowledgeBaseId !== undefined) updateData.KnowledgeBaseId = body.KnowledgeBaseId
     if (body.welcomeMessage !== undefined) updateData.welcomeMessage = body.welcomeMessage?.trim()
     if (body.quickReplies !== undefined) updateData.quickReplies = body.quickReplies
     if (body.handoffEnabled !== undefined) updateData.handoffEnabled = body.handoffEnabled
@@ -221,7 +221,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id },
       data: updateData,
       include: {
-        knowledgeBase: {
+        KnowledgeBase: {
           select: { id: true, name: true },
         },
         _count: {
@@ -245,8 +245,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       model: bot.model,
       temperature: bot.temperature,
       maxTokens: bot.maxTokens,
-      knowledgeBaseId: bot.knowledgeBaseId || undefined,
-      knowledgeBaseName: bot.knowledgeBase?.name,
+      knowledgeBaseId: bot.KnowledgeBaseId || undefined,
+      knowledgeBaseName: bot.KnowledgeBase?.name,
       welcomeMessage: bot.welcomeMessage || undefined,
       quickReplies: bot.quickReplies,
       handoffEnabled: bot.handoffEnabled,

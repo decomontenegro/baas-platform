@@ -42,7 +42,7 @@ export async function GET(
       throw new NotFoundError('Tenant')
     }
 
-    const knowledgeBase = await prisma.knowledgeBase.findFirst({
+    const knowledgeBase = await prisma.KnowledgeBase.findFirst({
       where: {
         id,
         tenantId,
@@ -80,8 +80,8 @@ export async function GET(
     const stats = await getKnowledgeBaseStats(id)
 
     return apiResponse({
-      knowledgeBase: {
-        ...knowledgeBase,
+      KnowledgeBase: {
+        ...KnowledgeBase,
         stats,
       },
     })
@@ -105,7 +105,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    const existing = await prisma.knowledgeBase.findFirst({
+    const existing = await prisma.KnowledgeBase.findFirst({
       where: {
         id,
         tenantId,
@@ -119,7 +119,7 @@ export async function PATCH(
 
     const data = await parseBody(request, updateKnowledgeBaseSchema)
 
-    const knowledgeBase = await prisma.knowledgeBase.update({
+    const knowledgeBase = await prisma.KnowledgeBase.update({
       where: { id },
       data: {
         ...data,
@@ -148,7 +148,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    const existing = await prisma.knowledgeBase.findFirst({
+    const existing = await prisma.KnowledgeBase.findFirst({
       where: {
         id,
         tenantId,
@@ -169,7 +169,7 @@ export async function DELETE(
           deletedBy: session.user.id,
         },
       }),
-      prisma.knowledgeBase.update({
+      prisma.KnowledgeBase.update({
         where: { id },
         data: {
           deletedAt: new Date(),

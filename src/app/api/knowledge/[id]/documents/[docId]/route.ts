@@ -43,7 +43,7 @@ export async function GET(
         id: docId,
         knowledgeBaseId,
         deletedAt: null,
-        knowledgeBase: {
+        KnowledgeBase: {
           tenantId,
           deletedAt: null,
         },
@@ -95,7 +95,7 @@ export async function PATCH(
         id: docId,
         knowledgeBaseId,
         deletedAt: null,
-        knowledgeBase: {
+        KnowledgeBase: {
           tenantId,
           deletedAt: null,
         },
@@ -142,7 +142,7 @@ export async function DELETE(
         id: docId,
         knowledgeBaseId,
         deletedAt: null,
-        knowledgeBase: {
+        KnowledgeBase: {
           tenantId,
           deletedAt: null,
         },
@@ -188,7 +188,7 @@ export async function POST(
         id: docId,
         knowledgeBaseId,
         deletedAt: null,
-        knowledgeBase: {
+        KnowledgeBase: {
           tenantId,
           deletedAt: null,
         },

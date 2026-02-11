@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
           { updatedAt: 'desc' },
         ],
         include: {
-          knowledgeBase: {
+          KnowledgeBase: {
             select: { id: true, name: true },
           },
           _count: {
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
       model: bot.model,
       temperature: bot.temperature,
       maxTokens: bot.maxTokens,
-      knowledgeBaseId: bot.knowledgeBaseId || undefined,
-      knowledgeBaseName: bot.knowledgeBase?.name,
+      knowledgeBaseId: bot.KnowledgeBaseId || undefined,
+      knowledgeBaseName: bot.KnowledgeBase?.name,
       welcomeMessage: bot.welcomeMessage || undefined,
       quickReplies: bot.quickReplies,
       handoffEnabled: bot.handoffEnabled,
@@ -155,10 +155,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate knowledge base if provided
-    if (body.knowledgeBaseId) {
-      const kb = await prisma.knowledgeBase.findFirst({
+    if (body.KnowledgeBaseId) {
+      const kb = await prisma.KnowledgeBase.findFirst({
         where: {
-          id: body.knowledgeBaseId,
+          id: body.KnowledgeBaseId,
           tenantId,
           deletedAt: null,
         },
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
         model: body.model || 'gpt-4o-mini',
         temperature,
         maxTokens,
-        knowledgeBaseId: body.knowledgeBaseId,
+        knowledgeBaseId: body.KnowledgeBaseId,
         welcomeMessage: body.welcomeMessage?.trim(),
         quickReplies: body.quickReplies || [],
         handoffEnabled: body.handoffEnabled ?? true,
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         metadata: body.metadata || {},
       },
       include: {
-        knowledgeBase: {
+        KnowledgeBase: {
           select: { id: true, name: true },
         },
       },
@@ -232,8 +232,8 @@ export async function POST(request: NextRequest) {
       model: bot.model,
       temperature: bot.temperature,
       maxTokens: bot.maxTokens,
-      knowledgeBaseId: bot.knowledgeBaseId || undefined,
-      knowledgeBaseName: bot.knowledgeBase?.name,
+      knowledgeBaseId: bot.KnowledgeBaseId || undefined,
+      knowledgeBaseName: bot.KnowledgeBase?.name,
       welcomeMessage: bot.welcomeMessage || undefined,
       quickReplies: bot.quickReplies,
       handoffEnabled: bot.handoffEnabled,

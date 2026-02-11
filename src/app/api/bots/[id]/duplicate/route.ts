@@ -66,7 +66,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         model: originalBot.model,
         temperature: originalBot.temperature,
         maxTokens: originalBot.maxTokens,
-        knowledgeBaseId: originalBot.knowledgeBaseId,
+        knowledgeBaseId: originalBot.KnowledgeBaseId,
         welcomeMessage: originalBot.welcomeMessage,
         quickReplies: originalBot.quickReplies,
         handoffEnabled: originalBot.handoffEnabled,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         isDefault: false, // Never duplicate as default
       },
       include: {
-        knowledgeBase: {
+        KnowledgeBase: {
           select: { id: true, name: true },
         },
       },
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       model: newBot.model,
       temperature: newBot.temperature,
       maxTokens: newBot.maxTokens,
-      knowledgeBaseId: newBot.knowledgeBaseId || undefined,
-      knowledgeBaseName: newBot.knowledgeBase?.name,
+      knowledgeBaseId: newBot.KnowledgeBaseId || undefined,
+      knowledgeBaseName: newBot.KnowledgeBase?.name,
       welcomeMessage: newBot.welcomeMessage || undefined,
       quickReplies: newBot.quickReplies,
       handoffEnabled: newBot.handoffEnabled,

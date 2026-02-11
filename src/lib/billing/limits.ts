@@ -90,7 +90,7 @@ export async function getUsageSummary(tenantId: string): Promise<UsageSummary> {
     // Storage used (aggregate from usage records or knowledge base)
     prisma.knowledgeDocument.aggregate({
       where: {
-        knowledgeBase: { tenantId },
+        KnowledgeBase: { tenantId },
         deletedAt: null,
       },
       _sum: { fileSize: true },

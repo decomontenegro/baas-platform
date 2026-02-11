@@ -85,7 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         deletedAt: null,
       },
       include: {
-        knowledgeBase: {
+        KnowledgeBase: {
           select: { id: true, name: true },
         },
       },
