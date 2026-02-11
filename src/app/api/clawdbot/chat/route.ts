@@ -38,37 +38,46 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendViaSession(message: string, label: string): Promise<string> {
+async function sendViaSession(message: string, _label: string): Promise<string> {
   try {
-    // Escape message for shell
-    const escapedMessage = message.replace(/'/g, "'\\''")
+    // Escape message for shell - handle special chars
+    const escapedMessage = message
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, '\\$')
+      .replace(/`/g, '\\`')
     
-    // Use clawdbot send command with label
-    const cmd = `clawdbot send --label "${label}" --message '${escapedMessage}' --timeout 30 2>&1`
+    // Use clawdbot message send - talks directly to the agent
+    // This sends via webchat/web session
+    const cmd = `clawdbot message send --message "${escapedMessage}" --json 2>&1`
     
     const result = execSync(cmd, {
-      timeout: 35000,
+      timeout: 60000, // 60 second timeout for LLM response
       encoding: 'utf-8',
       env: { ...process.env, HOME: '/root' }
     })
     
-    return result.trim() || 'Mensagem enviada com sucesso.'
-  } catch (error) {
-    // Try alternative: direct session spawn
+    // Parse JSON response if available
     try {
-      const escapedMessage = message.replace(/'/g, "'\\''")
-      const cmd = `clawdbot session --message '${escapedMessage}' --no-interactive 2>&1 | head -100`
-      
-      const result = execSync(cmd, {
-        timeout: 35000,
-        encoding: 'utf-8',
-        env: { ...process.env, HOME: '/root' }
-      })
-      
-      return result.trim() || 'Sessão criada.'
+      const jsonMatch = result.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0])
+        return data.response || data.message || data.text || result.trim()
+      }
     } catch {
-      // Final fallback - just acknowledge
-      return `🐺 Mensagem recebida: "${message}"\n\nO console está funcionando. Para respostas em tempo real, use WhatsApp ou configure o webchat channel.`
+      // Not JSON, return as-is
     }
+    
+    return result.trim() || 'Mensagem processada.'
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    // Check if it's a timeout (LLM took too long)
+    if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout')) {
+      return `⏱️ Timeout aguardando resposta do agente. A mensagem foi enviada mas a resposta demorou demais.`
+    }
+    
+    // Final fallback
+    return `🐺 Mensagem recebida: "${message}"\n\n⚠️ Erro ao processar: ${errorMessage}`
   }
 }
