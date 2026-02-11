@@ -49,31 +49,36 @@ export default function DashboardPage() {
     fetchStats()
   }, [])
 
+  // Parse stats from API response (stats.data.*)
+  const channelsData = stats?.data?.channels
+  const conversationsData = stats?.data?.conversations
+  const providersData = stats?.data?.providers
+  
   const statCards = [
     {
       title: "Canais Conectados",
-      value: stats?.channels ?? 0,
-      icon: stats?.channels ? Wifi : WifiOff,
-      description: stats?.channelsList?.map(c => c.type).join(', ') || "Nenhum canal configurado",
-      highlight: stats?.channels ? true : false,
+      value: channelsData?.total ?? 0,
+      icon: channelsData?.total ? Wifi : WifiOff,
+      description: channelsData?.list?.join(', ') || "Nenhum canal configurado",
+      highlight: channelsData?.total ? true : false,
     },
     {
       title: "Grupos Ativos",
-      value: stats?.groups ?? 0,
+      value: conversationsData?.total ?? 0,
       icon: Users,
-      description: stats?.groups ? `Em ${stats.channels} canal(is)` : "Configure canais primeiro",
+      description: conversationsData?.total ? `Em ${channelsData?.total} canal(is)` : "Configure canais primeiro",
     },
     {
-      title: "Conversas",
-      value: stats?.conversations ?? 0,
+      title: "Providers LLM",
+      value: providersData?.total ?? 0,
       icon: MessageSquare,
-      description: "Total de conversas rastreadas",
+      description: providersData?.total ? `${providersData.active} ativos` : "Nenhum provider",
     },
     {
-      title: "Taxa de Resolução",
-      value: stats?.resolutionRate !== null ? `${stats?.resolutionRate}%` : "–",
+      title: "Status",
+      value: stats?.data?.health?.status === 'healthy' ? '✅' : '⚠️',
       icon: TrendingUp,
-      description: "Dados disponíveis após uso",
+      description: stats?.data?.health?.status === 'healthy' ? 'Sistema saudável' : 'Verificar status',
     },
   ]
 
@@ -136,7 +141,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Channels Detail */}
-      {stats?.channelsList && stats.channelsList.length > 0 && (
+      {channelsData?.list && channelsData.list.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Canais Configurados</CardTitle>
@@ -146,9 +151,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.channelsList.map((channel) => (
+              {channelsData.list.map((channelType: string) => (
                 <div
-                  key={channel.type}
+                  key={channelType}
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
                   <div className="flex items-center gap-3">
@@ -156,9 +161,9 @@ export default function DashboardPage() {
                       <Wifi className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <div className="font-medium">{channel.type}</div>
+                      <div className="font-medium capitalize">{channelType}</div>
                       <p className="text-sm text-muted-foreground">
-                        {channel.groups} grupo(s) configurado(s)
+                        {conversationsData?.total || 0} grupo(s) configurado(s)
                       </p>
                     </div>
                   </div>
