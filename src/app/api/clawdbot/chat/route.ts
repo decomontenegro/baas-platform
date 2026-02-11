@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendViaSession(message: string, _label: string): Promise<string> {
+async function sendViaSession(message: string, sessionId: string): Promise<string> {
   try {
     // Escape message for shell - handle special chars
     const escapedMessage = message
@@ -47,37 +47,56 @@ async function sendViaSession(message: string, _label: string): Promise<string> 
       .replace(/\$/g, '\\$')
       .replace(/`/g, '\\`')
     
-    // Use clawdbot message send - talks directly to the agent
-    // This sends via webchat/web session
-    const cmd = `clawdbot message send --message "${escapedMessage}" --json 2>&1`
+    // Use clawdbot agent - talks directly to the agent via Gateway
+    // --session-id keeps conversation context
+    // --json for parseable output
+    const cmd = `clawdbot agent --session-id "${sessionId}" --message "${escapedMessage}" --json 2>&1`
     
     const result = execSync(cmd, {
-      timeout: 60000, // 60 second timeout for LLM response
+      timeout: 120000, // 120 second timeout for LLM response (can be slow)
       encoding: 'utf-8',
       env: { ...process.env, HOME: '/root' }
     })
     
-    // Parse JSON response if available
+    // Parse JSON response
     try {
       const jsonMatch = result.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0])
-        return data.response || data.message || data.text || result.trim()
+        // Agent returns response in different fields
+        return data.reply || data.response || data.message || data.text || data.content || result.trim()
       }
     } catch {
-      // Not JSON, return as-is
+      // Not JSON, return as-is (might be the actual response)
     }
     
-    return result.trim() || 'Mensagem processada.'
+    // Clean up the response - remove any clawdbot CLI noise
+    const cleanResult = result
+      .split('\n')
+      .filter(line => !line.startsWith('🦞') && !line.startsWith('Usage:'))
+      .join('\n')
+      .trim()
+    
+    return cleanResult || 'Mensagem processada.'
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorOutput = (error as { stdout?: string; stderr?: string })?.stdout || (error as { stdout?: string; stderr?: string })?.stderr || ''
     
     // Check if it's a timeout (LLM took too long)
-    if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout')) {
-      return `⏱️ Timeout aguardando resposta do agente. A mensagem foi enviada mas a resposta demorou demais.`
+    if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout') || errorMessage.includes('SIGTERM')) {
+      return `⏱️ Timeout aguardando resposta do agente. Tente novamente ou use mensagem mais curta.`
     }
     
-    // Final fallback
-    return `🐺 Mensagem recebida: "${message}"\n\n⚠️ Erro ao processar: ${errorMessage}`
+    // Check for gateway not running
+    if (errorOutput.includes('ECONNREFUSED') || errorOutput.includes('connect')) {
+      return `🔌 Gateway não está rodando. Execute: clawdbot gateway start`
+    }
+    
+    // Return the actual error output if available
+    if (errorOutput) {
+      return `⚠️ ${errorOutput.trim()}`
+    }
+    
+    return `🐺 Erro: ${errorMessage}`
   }
 }
