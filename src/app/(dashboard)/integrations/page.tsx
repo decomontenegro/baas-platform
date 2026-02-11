@@ -88,27 +88,38 @@ export default function IntegrationsPage() {
   const fetchIntegrations = async () => {
     try {
       setLoading(true)
-      // In real app, fetch from API
-      // const res = await fetch(`/api/integrations?workspaceId=${workspaceId}`)
-      // const data = await res.json()
+      // Fetch real channels from Clawdbot API
+      const channelsRes = await fetch('/api/clawdbot/channels')
+      const channelsData = await channelsRes.json()
+      const realChannels = channelsData.success ? channelsData.data : []
       
-      // Mock data for demo
-      const mockIntegrations: ConnectedIntegration[] = Object.entries(INTEGRATIONS_REGISTRY).map(
+      // Map real channels to connected types
+      const connectedTypes = new Set<string>()
+      for (const ch of realChannels) {
+        if (ch.type === 'whatsapp') connectedTypes.add('CHANNEL_WHATSAPP')
+        if (ch.type === 'telegram') connectedTypes.add('CHANNEL_TELEGRAM')
+        if (ch.type === 'discord') connectedTypes.add('CHANNEL_DISCORD')
+        if (ch.type === 'slack') connectedTypes.add('CHANNEL_SLACK')
+        if (ch.type === 'webchat') connectedTypes.add('WEBHOOK')
+      }
+      
+      // Create integrations list with real status
+      const realIntegrations: ConnectedIntegration[] = Object.entries(INTEGRATIONS_REGISTRY).map(
         ([type, info]) => ({
           type: type as IntegrationType,
           info,
-          connected: ['CRM_HUBSPOT', 'WEBHOOK'].includes(type),
-          connection: ['CRM_HUBSPOT', 'WEBHOOK'].includes(type) ? {
+          connected: connectedTypes.has(type),
+          connection: connectedTypes.has(type) ? {
             id: `int-${type.toLowerCase()}`,
             name: info.name,
-            status: type === 'WEBHOOK' ? 'ACTIVE' : 'ACTIVE' as IntegrationStatus,
+            status: 'ACTIVE' as IntegrationStatus,
             lastSyncAt: new Date().toISOString(),
-            statusMessage: null,
+            statusMessage: 'Conectado via Clawdbot',
           } : undefined,
         })
       )
       
-      setIntegrations(mockIntegrations)
+      setIntegrations(realIntegrations)
     } catch (err) {
       setError('Failed to load integrations')
     } finally {
