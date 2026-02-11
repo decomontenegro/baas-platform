@@ -44,22 +44,10 @@ export async function GET(request: NextRequest) {
       id: job.id || `flow-${index}`,
       name: job.name || job.text?.substring(0, 50) || `Flow ${index + 1}`,
       description: job.text || 'Automated flow',
-      status: job.enabled ? 'active' : 'inactive',
-      trigger: {
-        type: 'schedule' as const,
-        config: { schedule: job.schedule }
-      },
-      steps: [
-        {
-          id: 'step-1',
-          type: 'action',
-          name: 'Execute Task',
-          config: {}
-        }
-      ],
+      status: job.enabled ? 'active' : 'paused',
+      trigger: `Schedule: ${job.schedule}`,
       executions: Math.floor(Math.random() * 100),
       lastRun: job.lastRun || null,
-      nextRun: job.nextRun || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }))
@@ -84,11 +72,9 @@ function getSampleFlows() {
       name: 'Welcome Message',
       description: 'Sends welcome message to new users',
       status: 'active',
-      trigger: { type: 'event', config: { event: 'user.joined' } },
-      steps: [{ id: 's1', type: 'message', name: 'Send Welcome', config: {} }],
+      trigger: 'New conversation',
       executions: 156,
       lastRun: new Date(Date.now() - 3600000).toISOString(),
-      nextRun: null,
       createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -97,11 +83,9 @@ function getSampleFlows() {
       name: 'Daily Summary',
       description: 'Sends daily activity summary',
       status: 'active',
-      trigger: { type: 'schedule', config: { schedule: '0 9 * * *' } },
-      steps: [{ id: 's1', type: 'action', name: 'Generate Summary', config: {} }],
+      trigger: 'Schedule: 9am daily',
       executions: 30,
       lastRun: new Date(Date.now() - 86400000).toISOString(),
-      nextRun: new Date(Date.now() + 43200000).toISOString(),
       createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -110,11 +94,9 @@ function getSampleFlows() {
       name: 'Auto Response',
       description: 'Automatic response for common questions',
       status: 'active',
-      trigger: { type: 'keyword', config: { keywords: ['help', 'support'] } },
-      steps: [{ id: 's1', type: 'condition', name: 'Check Intent', config: {} }],
+      trigger: 'Intent: help/support',
       executions: 89,
       lastRun: new Date(Date.now() - 1800000).toISOString(),
-      nextRun: null,
       createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
       updatedAt: new Date().toISOString()
     }
