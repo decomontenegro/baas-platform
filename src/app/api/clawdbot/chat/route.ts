@@ -1,16 +1,18 @@
 import { NextRequest } from 'next/server'
-import { spawn } from 'child_process'
 
 export const dynamic = 'force-dynamic'
 
+const GATEWAY_URL = process.env.CLAWDBOT_GATEWAY_URL || 'http://localhost:18789'
+const GATEWAY_TOKEN = process.env.CLAWDBOT_GATEWAY_TOKEN || ''
+
 /**
  * POST /api/clawdbot/chat
- * Send a message to Clawdbot and get response
+ * Send a message to Clawdbot via gateway webchat API
  * This is a fallback console when other channels are down
  */
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json()
+    const { message, sessionId } = await request.json()
     
     if (!message || typeof message !== 'string') {
       return Response.json({
@@ -19,9 +21,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Use clawdbot CLI to send message
-    // This creates a webchat-style session
-    const response = await sendToClawdbot(message)
+    // Send to Clawdbot gateway webchat endpoint
+    const response = await sendToGateway(message, sessionId || 'baas-console')
     
     return Response.json({
       success: true,
@@ -39,37 +40,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendToClawdbot(message: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Use clawdbot chat command with webchat channel
-    const proc = spawn('clawdbot', ['chat', '--channel', 'webchat', '--message', message], {
-      timeout: 60000, // 60 second timeout
-      env: { ...process.env }
+async function sendToGateway(message: string, sessionId: string): Promise<string> {
+  try {
+    // Try the gateway webchat API
+    const response = await fetch(`${GATEWAY_URL}/api/webchat/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(GATEWAY_TOKEN ? { 'Authorization': `Bearer ${GATEWAY_TOKEN}` } : {})
+      },
+      body: JSON.stringify({
+        message,
+        sessionId,
+        source: 'baas-console'
+      })
     })
-    
-    let stdout = ''
-    let stderr = ''
-    
-    proc.stdout.on('data', (data) => {
-      stdout += data.toString()
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.response || data.message || 'Mensagem processada.'
+    }
+
+    // Fallback: try /api/chat endpoint
+    const fallbackResponse = await fetch(`${GATEWAY_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(GATEWAY_TOKEN ? { 'Authorization': `Bearer ${GATEWAY_TOKEN}` } : {})
+      },
+      body: JSON.stringify({
+        message,
+        channel: 'webchat',
+        userId: sessionId
+      })
     })
-    
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-    
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout.trim() || 'Comando executado com sucesso.')
-      } else {
-        // If clawdbot chat doesn't work, try alternative approach
-        // For now, return a helpful message
-        resolve(`Processando: "${message}"\n\nNota: Console em modo de desenvolvimento. Use o gateway diretamente para comandos completos.`)
-      }
-    })
-    
-    proc.on('error', (err) => {
-      reject(err)
-    })
-  })
+
+    if (fallbackResponse.ok) {
+      const data = await fallbackResponse.json()
+      return data.response || data.message || 'Mensagem processada.'
+    }
+
+    // If gateway doesn't have these endpoints, return informative message
+    return `📨 Mensagem recebida: "${message}"\n\n⚠️ Gateway webchat API não disponível. Configure o endpoint /api/webchat/message no Clawdbot para habilitar respostas em tempo real.`
+  } catch (error) {
+    console.error('Gateway connection error:', error)
+    return `📨 Mensagem: "${message}"\n\n🔌 Não foi possível conectar ao gateway (${GATEWAY_URL}). Verifique se o Clawdbot está rodando.`
+  }
 }
