@@ -1,66 +1,81 @@
-import { NextResponse } from 'next/server'
-// Force dynamic rendering
+import { NextRequest } from 'next/server'
+import { readFile } from 'fs/promises'
+import { existsSync } from 'fs'
+
 export const dynamic = 'force-dynamic'
 
-// API Route to get real stats from Clawdbot
-export async function GET() {
+const CLAWDBOT_CONFIG_PATH = process.env.CLAWDBOT_CONFIG_PATH || '/root/.clawdbot/clawdbot.json'
+
+/**
+ * GET /api/clawdbot/stats
+ * Returns dashboard stats from Clawdbot config
+ */
+export async function GET(_request: NextRequest) {
   try {
-    // Read Clawdbot config to get channels
-    const fs = await import('fs/promises')
-    const path = await import('path')
-    
-    const configPath = path.join(process.env.HOME || '/root', '.clawdbot', 'clawdbot.json')
-    
-    let channels = 0
-    let groups = 0
-    let channelsList: { type: string; groups: number }[] = []
-    
-    try {
-      const configData = await fs.readFile(configPath, 'utf-8')
-      const config = JSON.parse(configData)
-      
-      // Count channels
-      if (config.channels) {
-        if (config.channels.whatsapp) {
-          channels++
-          const whatsappGroups = Object.keys(config.channels.whatsapp.groups || {}).length
-          groups += whatsappGroups
-          channelsList.push({ type: 'WhatsApp', groups: whatsappGroups })
-        }
-        if (config.channels.telegram) {
-          channels++
-          const telegramGroups = Object.keys(config.channels.telegram.groups || {}).length
-          groups += telegramGroups
-          channelsList.push({ type: 'Telegram', groups: telegramGroups })
-        }
-        if (config.channels.discord) {
-          channels++
-          channelsList.push({ type: 'Discord', groups: 0 })
-        }
-      }
-    } catch (e) {
-      // Config not found or unreadable
-      console.log('Could not read clawdbot config:', e)
+    if (!existsSync(CLAWDBOT_CONFIG_PATH)) {
+      return Response.json({
+        success: false,
+        error: 'Clawdbot config not found'
+      }, { status: 404 })
     }
     
-    return NextResponse.json({
-      channels,
-      groups,
-      channelsList,
-      // Placeholder - would need to track conversations in DB
-      conversations: 0,
-      resolutionRate: null,
-      message: channels === 0 
-        ? 'Nenhum canal configurado. Configure o Clawdbot primeiro.'
-        : `${channels} canal(is) conectado(s)`
+    const configRaw = await readFile(CLAWDBOT_CONFIG_PATH, 'utf-8')
+    const config = JSON.parse(configRaw)
+    
+    // Count channels
+    const channels = []
+    if (config.channels?.whatsapp) channels.push('whatsapp')
+    if (config.channels?.telegram) channels.push('telegram')
+    if (config.channels?.discord) channels.push('discord')
+    if (config.channels?.slack) channels.push('slack')
+    if (config.channels?.signal) channels.push('signal')
+    if (config.webchat) channels.push('webchat')
+    
+    // Count providers
+    const providers = Object.keys(config.models?.providers || {}).length
+    const authProviders = new Set(
+      Object.values(config.auth?.profiles || {})
+        .map((p: unknown) => (p as { provider: string }).provider)
+    ).size
+    
+    // Get groups count from WhatsApp
+    const whatsappGroups = config.channels?.whatsapp?.groups ? 
+      Object.keys(config.channels.whatsapp.groups).length : 0
+    
+    return Response.json({
+      success: true,
+      data: {
+        channels: {
+          total: channels.length,
+          connected: channels.length,
+          list: channels
+        },
+        providers: {
+          total: providers + authProviders,
+          active: providers + authProviders
+        },
+        conversations: {
+          total: whatsappGroups,
+          active: whatsappGroups,
+          today: 0
+        },
+        messages: {
+          total: 0,
+          today: 0,
+          pending: 0
+        },
+        health: {
+          status: 'healthy',
+          uptime: process.uptime(),
+          lastCheck: new Date().toISOString()
+        }
+      }
     })
   } catch (error) {
-    console.error('Error fetching clawdbot stats:', error)
-    return NextResponse.json({ 
-      channels: 0, 
-      groups: 0, 
-      conversations: 0,
-      error: 'Erro ao buscar estatísticas' 
+    console.error('Error reading stats:', error)
+    return Response.json({
+      success: false,
+      error: 'Failed to read stats'
     }, { status: 500 })
   }
 }
