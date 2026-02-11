@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   BarChart3,
   Bot,
@@ -129,7 +129,18 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false, onCollapse, className }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [focusedGroupIndex, setFocusedGroupIndex] = React.useState<number | null>(null)
+  
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/simple-auth', { method: 'DELETE' })
+      router.push('/simple-login')
+      router.refresh()
+    } catch {
+      router.push('/simple-login')
+    }
+  }
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number>(0)
   const navRef = React.useRef<HTMLDivElement>(null)
 
@@ -329,7 +340,7 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive">
+              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 Sair
               </DropdownMenuItem>
@@ -367,7 +378,7 @@ export function Sidebar({ collapsed = false, onCollapse, className }: SidebarPro
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer text-destructive">
+              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 Sair
               </DropdownMenuItem>
