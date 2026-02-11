@@ -57,8 +57,10 @@ export async function GET(request: NextRequest) {
   const peakHourData = sortedHours[0]
   
   return Response.json({
-    activity,
-    peakHours,
+    success: true,
+    data: {
+      activity,
+      peakHours,
     channelBreakdown: [
       {
         channelId: 'whatsapp',
@@ -78,6 +80,7 @@ export async function GET(request: NextRequest) {
       peakHour: { hour: peakHourData.hour, label: peakHourData.label, messages: peakHourData.messages },
       totalMessages,
       totalCost
+    }
     }
   })
 }
