@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
         }
       }))
       
+      // Return in format expected by hooks
       return Response.json({
-        success: true,
         data: channels,
         meta: {
           total: channels.length,
@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
   }
   
   return Response.json({
-    success: true,
     data: [],
     meta: { total: 0 }
   })

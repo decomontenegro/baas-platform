@@ -34,10 +34,11 @@ export async function GET(request: NextRequest) {
         }
       }))
       
+      // Return in format expected by hooks (data directly, not wrapped)
       return Response.json({
-        success: true,
         data: conversations,
-        meta: data.meta || { total: conversations.length }
+        meta: data.meta || { total: conversations.length },
+        pageParams: { page: 1, limit: 100 }
       })
     }
   } catch (error) {
@@ -45,8 +46,8 @@ export async function GET(request: NextRequest) {
   }
   
   return Response.json({
-    success: true,
     data: [],
-    meta: { total: 0, active: 0, handoff: 0, unread: 0 }
+    meta: { total: 0, active: 0, handoff: 0, unread: 0 },
+    pageParams: { page: 1, limit: 100 }
   })
 }
