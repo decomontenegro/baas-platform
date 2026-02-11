@@ -1,44 +1,27 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Public paths that don't need authentication
-  const publicPaths = ["/login", "/verify", "/api/auth", "/api/docs", "/api/clawdbot", "/api/health", "/api/status", "/api/templates", "/_next", "/favicon.ico"]
-  const isPublic = publicPaths.some(path => 
-    pathname === path || pathname.startsWith(path + "/") || pathname.startsWith(path)
-  )
-  
-  if (isPublic) {
+  // Skip auth for login page and API auth
+  if (pathname === "/auth/login" || pathname.startsWith("/api/auth") || pathname.startsWith("/_next")) {
     return NextResponse.next()
   }
   
-  // Check for session cookie (database sessions, not JWT)
-  // NextAuth with database sessions uses session token cookies
-  const sessionToken = request.cookies.get("__Secure-next-auth.session-token")?.value 
-    || request.cookies.get("next-auth.session-token")?.value
+  // Check for auth cookie
+  const authCookie = request.cookies.get("baas-auth")?.value
   
-  if (!sessionToken) {
-    // For API routes, return 401 instead of redirect
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Authentication required" },
-        { status: 401 }
-      )
-    }
-    
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("callbackUrl", pathname)
+  if (authCookie !== "authenticated") {
+    const loginUrl = new URL("/auth/login", request.url)
     return NextResponse.redirect(loginUrl)
   }
   
-  // Let the request through - actual session validation happens in route handlers
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|auth/login|api/auth).*)",
   ],
 }

@@ -1,10 +1,43 @@
 const bcrypt = require('bcryptjs')
 const { PrismaClient } = require('@prisma/client')
 
+// Set DATABASE_URL if not set
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:./dev.db"
+}
+
 const prisma = new PrismaClient()
 
 async function createAdmin() {
-  const email = 'admin@baas.deco.ooo'
+  // Primeiro tenta gmail.com, depois me.com
+  const possibleEmails = ['decomontenegro@gmail.com', 'decomontenegro@me.com']
+  
+  console.log('Checking for existing user...')
+  
+  // Procura qual email já existe
+  let existingUser = null
+  let email = null
+  
+  for (const testEmail of possibleEmails) {
+    const user = await prisma.user.findUnique({
+      where: { email: testEmail }
+    })
+    
+    if (user) {
+      existingUser = user
+      email = testEmail
+      console.log(`✅ Found existing user: ${testEmail}`)
+      break
+    }
+  }
+  
+  if (existingUser) {
+    console.log('User already configured - auth should work!')
+    return
+  }
+  
+  // Se não achou nenhum, usa gmail.com por padrão
+  email = possibleEmails[0]
   const password = 'admin123'
   
   console.log('Creating admin user...')
