@@ -4,6 +4,7 @@ import * as React from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { MobileSidebar } from "@/components/dashboard/mobile-sidebar"
+import { BudgetAlerts } from "@/components/dashboard/budget-alerts"
 import { Toaster } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
@@ -51,6 +52,9 @@ export default function DashboardLayout({
 
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
+      
+      {/* Budget monitoring alerts */}
+      <BudgetAlerts />
     </div>
   )
 }
