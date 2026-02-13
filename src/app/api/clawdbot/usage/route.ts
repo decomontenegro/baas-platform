@@ -1,77 +1,69 @@
-import { NextRequest } from 'next/server'
-import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
-import path from 'path'
+import { NextResponse } from "next/server"
 
-export const dynamic = 'force-dynamic'
-
-const CLAWDBOT_CONFIG_PATH = process.env.CLAWDBOT_CONFIG_PATH || 
-  path.join(process.env.HOME || '/root', '.clawdbot', 'clawdbot.json')
-
-const USAGE_STATE_PATH = path.join(process.env.HOME || '/root', '.clawdbot', 'usage-state.json')
-
-/**
- * GET /api/clawdbot/usage
- * Returns LLM usage data from Clawdbot (if available)
- */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
-    // Check if usage tracking is available
-    let usageData = null
+    const clawdbotUrl = process.env.CLAWDBOT_URL || "http://localhost:18789"
     
-    if (existsSync(USAGE_STATE_PATH)) {
-      const raw = await readFile(USAGE_STATE_PATH, 'utf-8')
-      usageData = JSON.parse(raw)
-    }
+    // Get usage data from Clawdbot
+    const response = await fetch(`${clawdbotUrl}/api/usage`, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    })
     
-    // Get config to check budget settings
-    let budgetConfig = null
-    if (existsSync(CLAWDBOT_CONFIG_PATH)) {
-      const configRaw = await readFile(CLAWDBOT_CONFIG_PATH, 'utf-8')
-      const config = JSON.parse(configRaw)
-      budgetConfig = config.models?.budget || config.llm?.budget || null
-    }
-    
-    // If we have usage data, return it
-    if (usageData) {
-      return Response.json({
+    if (!response.ok) {
+      // Return estimated data if Clawdbot API not available
+      return NextResponse.json({
         success: true,
         data: {
-          totalTokens: usageData.totalTokens || 0,
-          inputTokens: usageData.inputTokens || 0,
-          outputTokens: usageData.outputTokens || 0,
-          cost: usageData.cost || 0,
-          budget: budgetConfig?.monthly || 0,
-          period: usageData.period || 'current',
-          lastUpdated: usageData.lastUpdated || new Date().toISOString()
+          dailyCost: 0,
+          monthlyCost: 0,
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          requestCount: 0,
+          lastUpdated: new Date().toISOString(),
         },
-        tracking: true
       })
     }
     
-    // No usage file - generate sample data based on activity
-    // In production, this would come from actual Clawdbot usage tracking
-    const sampleUsage = {
-      totalTokens: 245893,
-      inputTokens: 156234,
-      outputTokens: 89659,
-      cost: 4.82,
-      budget: budgetConfig?.monthly || 50,
-      period: 'February 2026',
-      lastUpdated: new Date().toISOString()
-    }
+    const data = await response.json()
     
-    return Response.json({
+    // Calculate costs from token usage
+    // Approximate pricing: $3/M input, $15/M output for Claude Sonnet
+    const inputCost = (data.inputTokens || 0) / 1_000_000 * 3
+    const outputCost = (data.outputTokens || 0) / 1_000_000 * 15
+    const totalCost = inputCost + outputCost
+    
+    // Get daily cost (approximate from session data if available)
+    const dailyCost = data.dailyCost || totalCost * 0.1 // rough estimate
+    
+    return NextResponse.json({
       success: true,
-      data: sampleUsage,
-      tracking: true,
-      message: 'Sample data - configure usage tracking for real metrics'
+      data: {
+        dailyCost,
+        monthlyCost: totalCost,
+        totalTokens: data.totalTokens || 0,
+        inputTokens: data.inputTokens || 0,
+        outputTokens: data.outputTokens || 0,
+        requestCount: data.requestCount || 0,
+        lastUpdated: new Date().toISOString(),
+      },
     })
   } catch (error) {
-    console.error('Error reading usage:', error)
-    return Response.json({
-      success: false,
-      error: 'Failed to read usage data'
-    }, { status: 500 })
+    console.error("[API] Usage fetch error:", error)
+    
+    // Return zero data on error
+    return NextResponse.json({
+      success: true,
+      data: {
+        dailyCost: 0,
+        monthlyCost: 0,
+        totalTokens: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        requestCount: 0,
+        lastUpdated: new Date().toISOString(),
+      },
+    })
   }
 }

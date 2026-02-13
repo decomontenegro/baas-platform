@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CostWidget } from "@/components/dashboard/cost-widget"
 
 interface ClawdbotStats {
   channels: number
@@ -111,8 +112,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Cost Widget + Stats Grid */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Cost Widget - 1 column */}
+        <div className="lg:col-span-1">
+          <CostWidget />
+        </div>
+        
+        {/* Stats - 2 columns */}
+        <div className="lg:col-span-2 grid gap-4 sm:grid-cols-2">
         {statCards.map((stat) => {
           const Icon = stat.icon
           return (
@@ -138,6 +146,7 @@ export default function DashboardPage() {
             </Card>
           )
         })}
+        </div>
       </div>
 
       {/* Channels Detail */}
